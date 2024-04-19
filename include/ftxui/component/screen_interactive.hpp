@@ -43,6 +43,7 @@ class ScreenInteractive : public Screen {
   static ScreenInteractive* Active();
 
   // Start/Stop the main loop.
+  void PreventAnimation();
   void Loop(Component);
   void Exit();
   Closure ExitLoopClosure();
@@ -101,6 +102,7 @@ class ScreenInteractive : public Screen {
   std::string reset_cursor_position;
 
   std::atomic<bool> quit_ = false;
+  std::atomic<bool> stop_animations_ = false;
   std::thread event_listener_;
   std::thread animation_listener_;
   bool animation_requested_ = false;

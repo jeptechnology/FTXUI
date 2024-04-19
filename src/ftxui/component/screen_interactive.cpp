@@ -485,6 +485,11 @@ CapturedMouse ScreenInteractive::CaptureMouse() {
       [this] { mouse_captured = false; });
 }
 
+void ScreenInteractive::PreventAnimation()
+{
+  stop_animations_ = true;
+}
+
 /// @brief Execute the main loop.
 /// @param component The component to draw.
 /// @ingroup component
@@ -679,7 +684,7 @@ void ScreenInteractive::Install() {
   event_listener_ =
       std::thread(&EventListener, &quit_, task_receiver_->MakeSender());
   animation_listener_ =
-      std::thread(&AnimationListener, &quit_, task_receiver_->MakeSender());
+      std::thread(&AnimationListener, &stop_animations_, task_receiver_->MakeSender());
 }
 
 // private
@@ -885,6 +890,7 @@ void ScreenInteractive::Exit() {
 // private:
 void ScreenInteractive::ExitNow() {
   quit_ = true;
+  stop_animations_ = true;
   task_sender_.reset();
 }
 
