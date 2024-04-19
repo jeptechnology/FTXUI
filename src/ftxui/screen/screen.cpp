@@ -447,7 +447,7 @@ std::string Screen::ToString() const {
 
 // Print the Screen to the terminal.
 void Screen::Print() const {
-  std::cout << ToString() << '\0' << std::flush;
+  (*pcout) << ToString() << '\0' << std::flush;
 }
 
 /// @brief Access a character in a cell at a given position.
@@ -487,7 +487,7 @@ const Pixel& Screen::PixelAt(int x, int y) const {
 ///   auto document = render();
 ///   auto screen = Screen::Create(Dimension::Full(), Dimension::Fit(document));
 ///   Render(screen, document);
-///   std::cout << reset_position << screen.ToString() << std::flush;
+///   (*pcout) << reset_position << screen.ToString() << std::flush;
 ///   reset_position = screen.ResetPosition();
 ///
 ///   using namespace std::chrono_literals;

@@ -135,6 +135,10 @@ add_library(component
   src/ftxui/component/window.cpp
 )
 
+target_link_libraries(screen
+  PUBLIC util
+)
+
 target_link_libraries(dom
   PUBLIC screen
 )

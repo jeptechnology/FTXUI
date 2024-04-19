@@ -69,7 +69,7 @@ ScreenInteractive* g_active_screen = nullptr;  // NOLINT
 
 void Flush() {
   // Emscripten doesn't implement flush. We interpret zero as flush.
-  std::cout << '\0' << std::flush;
+  (*pcout) << '\0' << std::flush;
 }
 
 constexpr int timeout_milliseconds = 20;
@@ -137,7 +137,7 @@ void EventListener(std::atomic<bool>* quit, Sender<Task> out) {
 
   char c;
   while (!*quit) {
-    while (read(STDIN_FILENO, &c, 1), c)
+    while (read(input_fd, &c, 1), c)
       parser.Add(c);
 
     emscripten_sleep(1);
@@ -161,10 +161,10 @@ void ftxui_on_resize(int columns, int rows) {
 int CheckStdinReady(int usec_timeout) {
   timeval tv = {0, usec_timeout};
   fd_set fds;
-  FD_ZERO(&fds);                                          // NOLINT
-  FD_SET(STDIN_FILENO, &fds);                             // NOLINT
-  select(STDIN_FILENO + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
-  return FD_ISSET(STDIN_FILENO, &fds);                    // NOLINT
+  FD_ZERO(&fds);                                     // NOLINT
+  FD_SET(input_fd, &fds);                             // NOLINT
+  select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
+  return FD_ISSET(input_fd, &fds);                    // NOLINT
 }
 
 // Read char from the terminal.
@@ -178,8 +178,8 @@ void EventListener(std::atomic<bool>* quit, Sender<Task> out) {
     }
 
     const size_t buffer_size = 100;
-    std::array<char, buffer_size> buffer;                        // NOLINT;
-    size_t l = read(fileno(stdin), buffer.data(), buffer_size);  // NOLINT
+    std::array<char, buffer_size> buffer;                   // NOLINT;
+    size_t l = read(input_fd, buffer.data(), buffer_size);  // NOLINT
     for (size_t i = 0; i < l; ++i) {
       parser.Add(buffer[i]);  // NOLINT
     }
@@ -506,7 +506,7 @@ void ScreenInteractive::PreMain() {
     std::swap(suspended_screen_, g_active_screen);
     // Reset cursor position to the top of the screen and clear the screen.
     suspended_screen_->ResetCursorPosition();
-    std::cout << suspended_screen_->ResetPosition(/*clear=*/true);
+    (*pcout) << suspended_screen_->ResetPosition(/*clear=*/true);
     suspended_screen_->dimx_ = 0;
     suspended_screen_->dimy_ = 0;
 
@@ -531,7 +531,7 @@ void ScreenInteractive::PostMain() {
   // Restore suspended screen.
   if (suspended_screen_) {
     // Clear screen, and put the cursor at the beginning of the drawing.
-    std::cout << ResetPosition(/*clear=*/true);
+    (*pcout) << ResetPosition(/*clear=*/true);
     dimx_ = 0;
     dimy_ = 0;
     Uninstall();
@@ -540,11 +540,11 @@ void ScreenInteractive::PostMain() {
   } else {
     Uninstall();
 
-    std::cout << '\r';
+    (*pcout) << '\r';
     // On final exit, keep the current drawing and reset cursor position one
     // line after it.
     if (!use_alternative_screen_) {
-      std::cout << std::endl;
+      (*pcout) << std::endl;
     }
   }
 }
@@ -578,10 +578,10 @@ void ScreenInteractive::Install() {
 
   // Request the terminal to report the current cursor shape. We will restore it
   // on exit.
-  std::cout << DECRQSS_DECSCUSR;
+  (*pcout) << DECRQSS_DECSCUSR;
   on_exit_functions.push([this] {
-    std::cout << "\033[?25h";  // Enable cursor.
-    std::cout << "\033[" + std::to_string(cursor_reset_shape_) + " q";
+    (*pcout) << "\033[?25h";  // Enable cursor.
+    (*pcout) << "\033[" + std::to_string(cursor_reset_shape_) + " q";
   });
 
   // Install signal handlers to restore the terminal state on exit. The default
@@ -627,29 +627,29 @@ void ScreenInteractive::Install() {
   }
 
   struct termios terminal;  // NOLINT
-  tcgetattr(STDIN_FILENO, &terminal);
-  on_exit_functions.push([=] { tcsetattr(STDIN_FILENO, TCSANOW, &terminal); });
+  tcgetattr(input_fd, &terminal);
+  on_exit_functions.push([=] { tcsetattr(input_fd, TCSANOW, &terminal); });
 
   terminal.c_lflag &= ~ICANON;  // NOLINT Non canonique terminal.
   terminal.c_lflag &= ~ECHO;    // NOLINT Do not print after a key press.
   terminal.c_cc[VMIN] = 0;
   terminal.c_cc[VTIME] = 0;
-  // auto oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  // fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-  // on_exit_functions.push([=] { fcntl(STDIN_FILENO, F_GETFL, oldf); });
+  // auto oldf = fcntl(input_fd, F_GETFL, 0);
+  // fcntl(input_fd, F_SETFL, oldf | O_NONBLOCK);
+  // on_exit_functions.push([=] { fcntl(input_fd, F_GETFL, oldf); });
 
-  tcsetattr(STDIN_FILENO, TCSANOW, &terminal);
+  tcsetattr(input_fd, TCSANOW, &terminal);
 
 #endif
 
   auto enable = [&](const std::vector<DECMode>& parameters) {
-    std::cout << Set(parameters);
-    on_exit_functions.push([=] { std::cout << Reset(parameters); });
+    (*pcout) << Set(parameters);
+    on_exit_functions.push([=] { (*pcout) << Reset(parameters); });
   };
 
   auto disable = [&](const std::vector<DECMode>& parameters) {
-    std::cout << Reset(parameters);
-    on_exit_functions.push([=] { std::cout << Set(parameters); });
+    (*pcout) << Reset(parameters);
+    on_exit_functions.push([=] { (*pcout) << Set(parameters); });
   };
 
   if (use_alternative_screen_) {
@@ -801,7 +801,7 @@ void ScreenInteractive::Draw(Component component) {
 
   const bool resized = (dimx != dimx_) || (dimy != dimy_);
   ResetCursorPosition();
-  std::cout << ResetPosition(/*clear=*/resized);
+  (*pcout) << ResetPosition(/*clear=*/resized);
 
   // Resize the screen if needed.
   if (resized) {
@@ -825,14 +825,14 @@ void ScreenInteractive::Draw(Component component) {
   static int i = -3;
   ++i;
   if (!use_alternative_screen_ && (i % 150 == 0)) {  // NOLINT
-    std::cout << DeviceStatusReport(DSRMode::kCursor);
+    (*pcout) << DeviceStatusReport(DSRMode::kCursor);
   }
 #else
   static int i = -3;
   ++i;
   if (!use_alternative_screen_ &&
       (previous_frame_resized_ || i % 40 == 0)) {  // NOLINT
-    std::cout << DeviceStatusReport(DSRMode::kCursor);
+    (*pcout) << DeviceStatusReport(DSRMode::kCursor);
   }
 #endif
   previous_frame_resized_ = resized;
@@ -858,7 +858,7 @@ void ScreenInteractive::Draw(Component component) {
     }
   }
 
-  std::cout << ToString() << set_cursor_position;
+  (*pcout) << ToString() << set_cursor_position;
   Flush();
   Clear();
   frame_valid_ = true;
@@ -866,7 +866,7 @@ void ScreenInteractive::Draw(Component component) {
 
 // private
 void ScreenInteractive::ResetCursorPosition() {
-  std::cout << reset_cursor_position;
+  (*pcout) << reset_cursor_position;
   reset_cursor_position = "";
 }
 
@@ -900,7 +900,7 @@ void ScreenInteractive::Signal(int signal) {
   if (signal == SIGTSTP) {
     Post([&] {
       ResetCursorPosition();
-      std::cout << ResetPosition(/*clear*/ true);  // Cursor to the beginning
+      (*pcout) << ResetPosition(/*clear*/ true);  // Cursor to the beginning
       Uninstall();
       dimx_ = 0;
       dimy_ = 0;

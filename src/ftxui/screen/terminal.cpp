@@ -15,11 +15,102 @@
 
 #include <windows.h>
 #else
+#include <string.h>
+#include <errno.h>
+#include <cstdio>
+#include <pty.h>
+#include <termios.h>
 #include <sys/ioctl.h>  // for winsize, ioctl, TIOCGWINSZ
 #include <unistd.h>     // for STDOUT_FILENO
 #endif
 
 namespace ftxui {
+
+  class fdoutbuf : public std::streambuf 
+  {
+    protected:
+      int fd;    // file descriptor
+ 
+    public:
+      // constructor
+      fdoutbuf (int _fd) : fd(_fd) {}
+    
+    protected:
+      // write one character
+      virtual int_type overflow (int_type c) {
+          if (c != EOF) {
+              char z = c;
+              if (write (fd, &z, 1) != 1) {
+                  return EOF;
+              }
+          }
+          return c;
+      }
+      
+      // write multiple characters
+      virtual
+      std::streamsize xsputn (const char* s,
+                              std::streamsize num) {
+          return write(fd,s,num);
+      }
+  };
+
+  class fdostream : public std::ostream {
+    protected:
+      fdoutbuf buf;
+    public:
+      fdostream (int fd) : std::ostream(0), buf(fd) {
+          rdbuf(&buf);
+      }
+  };    
+
+  int input_fd = STDIN_FILENO;
+  int output_fd = STDOUT_FILENO;
+  int psuedo_fd[2];
+  std::ostream* pcout = &std::cout;
+ 
+  std::string CreatePsuedoTerminal()
+  {
+    char buf[256];
+    struct termios tty;
+    tty.c_iflag = (tcflag_t) 0;
+    tty.c_lflag = (tcflag_t) 0;
+    tty.c_cflag = CS8;
+    tty.c_oflag = (tcflag_t) 0;
+
+    auto e = openpty(&psuedo_fd[0], &psuedo_fd[1], buf, &tty, nullptr);
+    if(0 > e) {
+      std::printf("Error: %s\n", strerror(errno));
+      return "";
+    }
+
+    // both our input and output should use the psuedo_fd[0]
+    input_fd = psuedo_fd[0];
+    output_fd = psuedo_fd[0];
+    pcout = new fdostream(output_fd);
+
+    return buf;
+  }
+
+  void ClosePsuedoTerminal(const std::string& pty_name)
+  {
+    if (pcout != &std::cout)
+    {
+      delete pcout;
+      close(psuedo_fd[1]);
+      close(psuedo_fd[0]);
+    }
+  }
+
+  bool WaitForTerminalInput(int seconds)
+  {
+    timeval tv = {seconds, 0};
+    fd_set fds;
+    FD_ZERO(&fds);                                     // NOLINT
+    FD_SET(input_fd, &fds);                             // NOLINT
+    select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
+    return FD_ISSET(input_fd, &fds);                    // NOLINT
+  }
 
 namespace {
 
@@ -109,7 +200,7 @@ Dimensions Size() {
   return FallbackSize();
 #else
   winsize w{};
-  const int status = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);  // NOLINT
+  const int status = ioctl(output_fd, TIOCGWINSZ, &w);  // NOLINT
   // The ioctl return value result should be checked. Some operating systems
   // don't support TIOCGWINSZ.
   if (w.ws_col == 0 || w.ws_row == 0 || status < 0) {

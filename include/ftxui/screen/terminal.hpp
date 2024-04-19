@@ -4,7 +4,20 @@
 #ifndef FTXUI_SCREEN_TERMINAL_HPP
 #define FTXUI_SCREEN_TERMINAL_HPP
 
+#include <iostream>
+#include <unistd.h>  // for STDIN_FILENO, STDOUT_FILENO
+
 namespace ftxui {
+
+  // The file descriptors of the currently active screen.
+  extern int input_fd; // = STDIN_FILENO;
+  extern int output_fd; // = STDOUT_FILENO;
+  extern std::ostream* pcout; // = &std::cout;
+  
+  std::string CreatePsuedoTerminal(); 
+  void ClosePsuedoTerminal(const std::string& pty_name);
+  bool WaitForTerminalInput(int seconds);
+
 struct Dimensions {
   int dimx;
   int dimy;
