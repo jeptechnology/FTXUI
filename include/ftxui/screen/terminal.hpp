@@ -14,10 +14,10 @@ namespace ftxui {
   extern int output_fd; // = STDOUT_FILENO;
   extern std::ostream* pcout; // = &std::cout;
   
-  std::string CreatePsuedoTerminal(); 
+  std::string CreatePsuedoTerminal(const std::string& pty_name = ""); 
   void ClosePsuedoTerminal(const std::string& pty_name);
   bool WaitForTerminalInput(int seconds);
-
+  int  GetCharOnTerminal(unsigned timeoutMilliseconds);
 struct Dimensions {
   int dimx;
   int dimy;

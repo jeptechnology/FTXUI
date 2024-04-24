@@ -180,6 +180,12 @@ void EventListener(std::atomic<bool>* quit, Sender<Task> out) {
     const size_t buffer_size = 100;
     std::array<char, buffer_size> buffer;                   // NOLINT;
     size_t l = read(input_fd, buffer.data(), buffer_size);  // NOLINT
+    if (l == -1)
+    {
+      // Error reading from stdin.
+      continue;
+    }
+    
     for (size_t i = 0; i < l; ++i) {
       parser.Add(buffer[i]);  // NOLINT
     }
@@ -341,6 +347,11 @@ void AnimationListener(std::atomic<bool>* quit, Sender<Task> out) {
 }
 
 }  // namespace
+
+void ForceScreenResize()
+{
+  g_signal_resize_count++;
+}
 
 ScreenInteractive::ScreenInteractive(int dimx,
                                      int dimy,
@@ -863,7 +874,22 @@ void ScreenInteractive::Draw(Component component) {
     }
   }
 
-  (*pcout) << ToString() << set_cursor_position;
+  //constexpr size_t kMaxOutputSize = 1 * 1024;
+  Print(false);
+  (*pcout) << set_cursor_position;
+  // auto length = outputScreen.length();
+  // if (length <= kMaxOutputSize) 
+  // {
+  //   (*pcout) << outputScreen << set_cursor_position;
+  // }
+  // else
+  // {
+  //   (*pcout) << outputScreen.substr(0, kMaxOutputSize);
+  //   std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  //   (*pcout) << outputScreen.substr(kMaxOutputSize);
+  //   (*pcout) << set_cursor_position;
+  // }
+
   Flush();
   Clear();
   frame_valid_ = true;

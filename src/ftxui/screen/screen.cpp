@@ -72,7 +72,7 @@ void WindowsEmulateVT100Terminal() {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void UpdatePixelStyle(const Screen* screen,
-                      std::stringstream& ss,
+                      std::ostream& ss,
                       const Pixel& prev,
                       const Pixel& next) {
   // See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
@@ -413,8 +413,8 @@ Screen::Screen(int dimx, int dimy)
 /// terminal.
 /// @note Don't forget to flush stdout. Alternatively, you can use
 /// Screen::Print();
-std::string Screen::ToString() const {
-  std::stringstream ss;
+std::string Screen::ToString(std::ostream& ss) const {
+  //std::stringstream ss;
 
   const Pixel default_pixel;
   const Pixel* previous_pixel_ref = &default_pixel;
@@ -442,12 +442,17 @@ std::string Screen::ToString() const {
   // Reset the style to default:
   UpdatePixelStyle(this, ss, *previous_pixel_ref, default_pixel);
 
-  return ss.str();
+  //return ss.str();
+  return "";
 }
 
 // Print the Screen to the terminal.
-void Screen::Print() const {
-  (*pcout) << ToString() << '\0' << std::flush;
+void Screen::Print(bool andFlush) const {
+  ToString(*pcout);
+  if (andFlush)
+  {
+    (*pcout) << '\0' << std::flush;
+  }  
 }
 
 /// @brief Access a character in a cell at a given position.

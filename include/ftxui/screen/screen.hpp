@@ -75,10 +75,10 @@ class Screen {
   Pixel& PixelAt(int x, int y);
   const Pixel& PixelAt(int x, int y) const;
 
-  std::string ToString() const;
+  std::string ToString(std::ostream& output) const;
 
   // Print the Screen on to the terminal.
-  void Print() const;
+  void Print(bool andFlush = true) const;
 
   // Get screen dimensions.
   int dimx() const { return dimx_; }

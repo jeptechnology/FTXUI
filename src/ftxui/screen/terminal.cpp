@@ -19,10 +19,13 @@
 #include <errno.h>
 #include <cstdio>
 #include <pty.h>
+#include <fcntl.h>
 #include <termios.h>
 #include <sys/ioctl.h>  // for winsize, ioctl, TIOCGWINSZ
 #include <unistd.h>     // for STDOUT_FILENO
 #endif
+
+#include <atomic>  // for atomic
 
 namespace ftxui {
 
@@ -51,7 +54,12 @@ namespace ftxui {
       virtual
       std::streamsize xsputn (const char* s,
                               std::streamsize num) {
-          return write(fd,s,num);
+          auto written = write(fd,s,num);
+          if (written < num) {
+              return EOF;
+          }
+          return written;
+
       }
   };
 
@@ -69,27 +77,47 @@ namespace ftxui {
   int psuedo_fd[2];
   std::ostream* pcout = &std::cout;
  
-  std::string CreatePsuedoTerminal()
-  {
-    char buf[256];
-    struct termios tty;
-    tty.c_iflag = (tcflag_t) 0;
-    tty.c_lflag = (tcflag_t) 0;
-    tty.c_cflag = CS8;
-    tty.c_oflag = (tcflag_t) 0;
+  std::string CreatePsuedoTerminal(const std::string& pty_name)
+  {    
+    if (pty_name.empty())
+    {
+      char buf[256];
+      struct termios tty;
+      tty.c_iflag = (tcflag_t) 0;
+      tty.c_lflag = (tcflag_t) 0;
+      tty.c_cflag = CS8;
+      tty.c_oflag = (tcflag_t) 0;
 
-    auto e = openpty(&psuedo_fd[0], &psuedo_fd[1], buf, &tty, nullptr);
-    if(0 > e) {
-      std::printf("Error: %s\n", strerror(errno));
-      return "";
+      auto e = openpty(&psuedo_fd[0], &psuedo_fd[1], buf, &tty, nullptr);
+      if(0 > e) {
+        std::printf("Error: %s\n", strerror(errno));
+        return "";
+      }
+
+      // both our input and output should use the psuedo_fd[0]
+      input_fd = psuedo_fd[0];
+      output_fd = psuedo_fd[0];
+      pcout = new fdostream(output_fd);
+      return buf;
     }
+    else
+    {
+       input_fd = open(pty_name.c_str(), O_RDWR | O_NONBLOCK);
+       output_fd = input_fd;
+       if (input_fd < 0)
+       {
+         return "";
+       }
+       pcout = new fdostream(output_fd);
 
-    // both our input and output should use the psuedo_fd[0]
-    input_fd = psuedo_fd[0];
-    output_fd = psuedo_fd[0];
-    pcout = new fdostream(output_fd);
+      //  (*pcout) << "\033[2J"; //clear screen
+      //  (*pcout) << "\033[9999;9999H"; // cursor should move as far as it can
+      //  (*pcout) << "\033[6n"; // ask for cursor position            
+       
+       std::printf("Connected to PTY: %s\r\n", pty_name.c_str());
 
-    return buf;
+       return pty_name;
+    }
   }
 
   void ClosePsuedoTerminal(const std::string& pty_name)
@@ -111,6 +139,25 @@ namespace ftxui {
     select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
     return FD_ISSET(input_fd, &fds);                    // NOLINT
   }
+
+  int  GetCharOnTerminal(unsigned timeoutMilliseconds)
+  {
+    timeval tv = {timeoutMilliseconds / 1000, (timeoutMilliseconds % 1000) * 1000};
+    fd_set fds;
+    FD_ZERO(&fds);                                     // NOLINT
+    FD_SET(input_fd, &fds);                             // NOLINT
+    select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
+    if (FD_ISSET(input_fd, &fds))                       // NOLINT
+    {
+      char ch;
+      if (1 == read(input_fd, &ch, 1))
+      {
+        return ch;
+      }
+    }
+    return EOF;  
+  }
+
 
 namespace {
 
@@ -137,6 +184,44 @@ Dimensions& FallbackSize() {
       fallback_height,
   };
   return g_fallback_size;
+}
+
+Dimensions& GetPsuedoTerminalSize(bool force = false) {
+  static Dimensions g_psuedo_size
+  {
+      0,
+      0,
+  };
+
+  if (!force && g_psuedo_size.dimx != 0 && g_psuedo_size.dimy != 0) 
+  {
+    return g_psuedo_size;  // already set
+  }
+
+  (*pcout) << "\0337\033[r\033[999;999H\033[6n\0338";
+
+  std::string input;
+  int ch = GetCharOnTerminal(1000);
+
+  while (ch > 0 && ch != 'R')  // R terminates the response
+  {
+    if (EOF == ch || input.size() > 100) {
+      break;
+    }
+    if (isprint(ch)) {
+      input.push_back(ch);
+    }
+    ch = GetCharOnTerminal(1000);
+  }
+
+  (*pcout) << "\033[18t";  // move to upper left corner
+
+  if (2 == sscanf(input.c_str(), "[%d;%d", &g_psuedo_size.dimy,
+                  &g_psuedo_size.dimx)) {
+    return g_psuedo_size;
+  } else {
+    return FallbackSize();
+  }
 }
 
 const char* Safe(const char* c) {
@@ -199,6 +284,11 @@ Dimensions Size() {
 
   return FallbackSize();
 #else
+  // if (!isatty(output_fd) == 0) 
+  // {
+  //    return GetPsuedoTerminalSize();
+  // }
+  
   winsize w{};
   const int status = ioctl(output_fd, TIOCGWINSZ, &w);  // NOLINT
   // The ioctl return value result should be checked. Some operating systems
