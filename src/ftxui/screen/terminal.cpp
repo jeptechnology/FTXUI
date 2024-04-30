@@ -101,9 +101,9 @@ namespace ftxui {
     return Terminal(inputFd, outputFd);
   }
 
-  bool Terminal::WaitForTerminalInput(int seconds)
+  bool Terminal::WaitForTerminalInput(int seconds, int microseconds)
   {
-    timeval tv = {seconds, 0};
+    timeval tv = {seconds, microseconds};
     fd_set fds;
     FD_ZERO(&fds);                                     // NOLINT
     FD_SET(m_input_fd, &fds);                             // NOLINT
@@ -111,8 +111,15 @@ namespace ftxui {
     return FD_ISSET(m_input_fd, &fds);                    // NOLINT
   }
 
-  size_t Terminal::Read(char *buffer, size_t buffer_size)
+  ssize_t Terminal::Read(char *buffer, size_t buffer_size, int timeoutMilliseconds)
   {
+    if (timeoutMilliseconds > 0)
+    {
+      if (!WaitForTerminalInput(timeoutMilliseconds / 1000, (timeoutMilliseconds % 1000) * 1000))
+      {
+        return 0;
+      }
+    }
     return read(m_input_fd, buffer, buffer_size);  // NOLINT
   }
 
@@ -185,7 +192,7 @@ void Terminal::Uninstall()
 
 void Terminal::Install()
 {
-  if (!isatty(m_input_fd))
+  if (m_oldTerminalState || !isatty(m_input_fd))
   {
     return;
   }
@@ -205,6 +212,44 @@ void Terminal::Install()
   // on_exit_functions.push([=] { fcntl(input_fd, F_GETFL, oldf); });
 
   tcsetattr(m_input_fd, TCSANOW, &terminal);
+}
+
+Dimensions Terminal::GetPsuedoTerminalSize() {
+  if (g_cached_dimensions.dimx != 0 && g_cached_dimensions.dimy != 0) 
+  {
+    return g_cached_dimensions;  // already set
+  }
+
+  output << "\0337\033[r\033[999;999H\033[6n\0338";
+
+  std::string input;
+  
+  char ch;
+  Read(&ch, 1, 1000);  // read the response (hopefully
+
+  while (ch > 0 && ch != 'R')  // R terminates the response
+  {
+    if (EOF == ch || input.size() > 100) {
+      break;
+    }
+    if (isprint(ch)) {
+      input.push_back(ch);
+    }
+    Read(&ch, 1, 1000);  // read the response (hopefully
+  }
+
+  output << "\033[18t";  // move to upper left corner
+
+  if (2 == sscanf(input.c_str(), "[%d;%d", &g_cached_dimensions.dimy, &g_cached_dimensions.dimx)) {
+    return g_cached_dimensions;
+  } else {
+    return FallbackSize();
+  }
+}
+
+void Terminal::ForceRecalculateSize()
+{
+  g_cached_dimensions = {0,0};
 }
 
 /// @brief Get the terminal size.
@@ -227,6 +272,10 @@ Dimensions Terminal::Size() {
 
   return FallbackSize();
 #else
+  if (m_output_fd != STDOUT_FILENO) {
+    return GetPsuedoTerminalSize();
+  }
+
   if (!isatty(m_output_fd))  // NOLINT
   {
     return FallbackSize();

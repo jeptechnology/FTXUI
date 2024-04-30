@@ -26,6 +26,9 @@
 #include "ftxui/screen/terminal.hpp"    // for Size, Dimensions
 #include <filesystem>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/types.h>
 
 using namespace ftxui;
 
@@ -38,7 +41,15 @@ int main() {
     }
 
     // Open up wiser tty
-    auto wiser_tty = open(ptyPath, O_RDWR | O_NONBLOCK);
+    //auto wiser_tty = open(ptyPath, O_RDWR | O_NONBLOCK);
+    auto wiser_tty = socket(AF_UNIX, SOCK_STREAM, 0);
+    struct sockaddr_un address;
+    address.sun_family = AF_UNIX;
+    strcpy(address.sun_path, ptyPath);
+    auto len = sizeof(address);
+
+    if(connect(wiser_tty, (sockaddr*)&address, len) == -1)
+        return -1;
 
     on_exit([](int status, void *arg) {
         close(*(int *)arg);
@@ -46,7 +57,7 @@ int main() {
 
     if (wiser_tty < 0)
     {
-        printf("Error opening /tmp/ttyWISER\n");
+        printf("Error opening %s\r\n", ptyPath);
         return 1;
     }
 
@@ -552,10 +563,6 @@ int main() {
     // disabling animations
    screen.PreventAnimation();
 
-   while (!Terminal::Current().WaitForTerminalInput(5))
-   {
-      Terminal::Current().output << "\rWiserHome TUI - Press a key to continue";
-   }
    screen.Loop(main_renderer);
 
   refresh_ui_continue = false;

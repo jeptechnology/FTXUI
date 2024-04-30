@@ -29,6 +29,7 @@ public:
   
   void Install();
   void Uninstall();
+  void ForceRecalculateSize(); // next time we ask for size, we shall recalculate it.
 
   Dimensions Size();
   void SetFallbackSize(const Dimensions& fallbackSize);
@@ -40,8 +41,8 @@ public:
     TrueColor,
   };
 
-  bool WaitForTerminalInput(int seconds);
-  size_t Read(char *buffer, size_t buffer_size);  // NOLINT
+  bool WaitForTerminalInput(int seconds, int microseconds);
+  ssize_t Read(char *buffer, size_t buffer_size, int timeoutMilliseconds = 0);  // NOLINT
 
   Color ColorSupport();
   void SetColorSupport(Color color);
@@ -50,12 +51,15 @@ public:
 private:
   Terminal(int input_fd, int output_fd);
 
+  Dimensions GetPsuedoTerminalSize();
+
   // The file descriptors of the currently active screen.
   int m_input_fd; // default = STDIN_FILENO;
   int m_output_fd; // default = STDOUT_FILENO;
   std::ostream* pcout; // = &std::cout;
   std::string pty_name;
   bool g_cached = false;                     // NOLINT
+  Dimensions g_cached_dimensions{0,0};            // NOLINT
   Color g_cached_supported_color;  // NOLINT
   std::unique_ptr<struct termios> m_oldTerminalState;  // NOLINT
 

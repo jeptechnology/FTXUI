@@ -163,14 +163,14 @@ void EventListener(std::atomic<bool>* quit, Sender<Task> out) {
   auto parser = TerminalInputParser(std::move(out));
 
   while (!*quit) {
-    if (!Terminal::Current().WaitForTerminalInput(timeout_microseconds)) {
+    if (!Terminal::Current().WaitForTerminalInput(0, timeout_microseconds)) {
       parser.Timeout(timeout_milliseconds);
       continue;
     }
 
     const size_t buffer_size = 100;
     std::array<char, buffer_size> buffer;                  // NOLINT;
-    size_t l = Terminal::Current().Read(buffer.data(), buffer_size);  // NOLINT
+    ssize_t l = Terminal::Current().Read(buffer.data(), buffer_size);  // NOLINT
     for (size_t i = 0; i < l; ++i) {
       parser.Add(buffer[i]);  // NOLINT
     }
