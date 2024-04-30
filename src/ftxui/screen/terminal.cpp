@@ -5,6 +5,9 @@
 #include <string>   // for string, allocator
 
 #include "ftxui/screen/terminal.hpp"
+#include <sys/select.h>  // for select, FD_ISSET, FD_SET, FD_ZERO, fd_set, timeval
+#include <termios.h>  // for tcsetattr, termios, tcgetattr, TCSANOW, cc_t, ECHO, ICANON, VMIN, VTIME
+#include <unistd.h>  // for STDIN_FILENO, read
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -171,6 +174,39 @@ Terminal::Color ComputeColorSupport() {
   return Terminal::Color::Palette16;
 }
 
+void Terminal::Uninstall()
+{
+  if (m_oldTerminalState == nullptr)
+  {
+    return;
+  }
+  tcsetattr(m_input_fd, TCSANOW, m_oldTerminalState.get());
+}
+
+void Terminal::Install()
+{
+  if (!isatty(m_input_fd))
+  {
+    return;
+  }
+  
+  struct termios terminal;
+  tcgetattr(m_input_fd, &terminal);
+
+  m_oldTerminalState = std::make_unique<struct termios>(terminal);
+
+  terminal.c_lflag &= ~ICANON;  // NOLINT Non canonique terminal.
+  terminal.c_lflag &= ~ECHO;    // NOLINT Do not print after a key press.
+  terminal.c_cc[VMIN] = 0;
+  terminal.c_cc[VTIME] = 0;
+
+  // auto oldf = fcntl(input_fd, F_GETFL, 0);
+  // fcntl(input_fd, F_SETFL, oldf | O_NONBLOCK);
+  // on_exit_functions.push([=] { fcntl(input_fd, F_GETFL, oldf); });
+
+  tcsetattr(m_input_fd, TCSANOW, &terminal);
+}
+
 /// @brief Get the terminal size.
 /// @return The terminal size.
 /// @ingroup screen
@@ -191,6 +227,11 @@ Dimensions Terminal::Size() {
 
   return FallbackSize();
 #else
+  if (!isatty(m_output_fd))  // NOLINT
+  {
+    return FallbackSize();
+  }
+
   winsize w{};
   const int status = ioctl(m_output_fd, TIOCGWINSZ, &w);  // NOLINT
   // The ioctl return value result should be checked. Some operating systems

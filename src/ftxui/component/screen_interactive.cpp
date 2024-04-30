@@ -336,9 +336,11 @@ void AnimationListener(std::atomic<bool>* quit, Sender<Task> out) {
 ScreenInteractive::ScreenInteractive(int dimx,
                                      int dimy,
                                      Dimension dimension,
-                                     bool use_alternative_screen)
+                                     bool use_alternative_screen,
+                                     int input_fd,
+                                     int output_fd)
     : Screen(dimx, dimy),
-      terminal_(Terminal::Create(STDIN_FILENO, STDOUT_FILENO)),
+      terminal_(Terminal::Create(input_fd, output_fd)),
       dimension_(dimension),
       use_alternative_screen_(use_alternative_screen) {
   task_receiver_ = MakeReceiver<Task>();
@@ -353,6 +355,20 @@ ScreenInteractive ScreenInteractive::FixedSize(int dimx, int dimy) {
       false,
   };
 }
+
+ScreenInteractive ScreenInteractive::Custom(int intput_fd, int output_fd)
+{
+  return {
+      0,
+      0,
+      Dimension::Fullscreen,
+      false,
+      intput_fd,
+      output_fd
+  };
+
+}
+
 
 /// @ingroup component
 /// Create a ScreenInteractive taking the full terminal size. This is using the
@@ -623,19 +639,9 @@ void ScreenInteractive::Install() {
     InstallSignalHandler(signal);
   }
 
-  struct termios terminal;  // NOLINT
-  tcgetattr(STDIN_FILENO, &terminal);
-  on_exit_functions.push([=] { tcsetattr(STDIN_FILENO, TCSANOW, &terminal); });
+  terminal_.Install();
+  on_exit_functions.push([this] { terminal_.Uninstall(); });
 
-  terminal.c_lflag &= ~ICANON;  // NOLINT Non canonique terminal.
-  terminal.c_lflag &= ~ECHO;    // NOLINT Do not print after a key press.
-  terminal.c_cc[VMIN] = 0;
-  terminal.c_cc[VTIME] = 0;
-  // auto oldf = fcntl(input_fd, F_GETFL, 0);
-  // fcntl(input_fd, F_SETFL, oldf | O_NONBLOCK);
-  // on_exit_functions.push([=] { fcntl(input_fd, F_GETFL, oldf); });
-
-  tcsetattr(STDIN_FILENO, TCSANOW, &terminal);
 
 #endif
 

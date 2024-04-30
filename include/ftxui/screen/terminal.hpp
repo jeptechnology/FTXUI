@@ -6,6 +6,9 @@
 
 #include <iostream>
 #include <unistd.h>  // for STDIN_FILENO, STDOUT_FILENO
+#include <memory>    // for unique_ptr
+
+struct termios;
 
 namespace ftxui {
 
@@ -24,6 +27,9 @@ public:
   Terminal(Terminal&&) = default;
   Terminal& operator=(Terminal&&) = default;
   
+  void Install();
+  void Uninstall();
+
   Dimensions Size();
   void SetFallbackSize(const Dimensions& fallbackSize);
 
@@ -51,6 +57,7 @@ private:
   std::string pty_name;
   bool g_cached = false;                     // NOLINT
   Color g_cached_supported_color;  // NOLINT
+  std::unique_ptr<struct termios> m_oldTerminalState;  // NOLINT
 
   std::string CreatePsuedoTerminal(); 
   void ClosePsuedoTerminal(const std::string& pty_name);

@@ -24,11 +24,33 @@
 #include "ftxui/screen/color.hpp"  // for Color, Color::BlueLight, Color::RedLight, Color::Black, Color::Blue, Color::Cyan, Color::CyanLight, Color::GrayDark, Color::GrayLight, Color::Green, Color::GreenLight, Color::Magenta, Color::MagentaLight, Color::Red, Color::White, Color::Yellow, Color::YellowLight, Color::Default, Color::Palette256, ftxui
 #include "ftxui/screen/color_info.hpp"  // for ColorInfo
 #include "ftxui/screen/terminal.hpp"    // for Size, Dimensions
+#include <filesystem>
+#include <fcntl.h>
 
 using namespace ftxui;
 
 int main() {
-  auto screen = ScreenInteractive::Fullscreen();
+
+    auto ptyPath = "/tmp/wiser.pty";
+    while (!std::filesystem::exists(ptyPath))
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    // Open up wiser tty
+    auto wiser_tty = open(ptyPath, O_RDWR | O_NONBLOCK);
+
+    on_exit([](int status, void *arg) {
+        close(*(int *)arg);
+    }, &wiser_tty);
+
+    if (wiser_tty < 0)
+    {
+        printf("Error opening /tmp/ttyWISER\n");
+        return 1;
+    }
+
+  auto screen = ScreenInteractive::Custom(wiser_tty, wiser_tty);
 
   // ---------------------------------------------------------------------------
   // HTOP
@@ -461,7 +483,7 @@ int main() {
            center;
   });
 
-  int paragraph_renderer_split_position = Terminal::Size().dimx / 2;
+  int paragraph_renderer_split_position = Terminal::Current().Size().dimx / 2;
   auto paragraph_renderer_group =
       ResizableSplitLeft(paragraph_renderer_left, paragraph_renderer_right,
                          &paragraph_renderer_split_position);
@@ -491,7 +513,7 @@ int main() {
       &tab_index);
 
   auto exit_button = Button(
-      "Exit", [&] { screen.Exit(); }, ButtonOption::Animated());
+      "Exit", [&] { screen.Exit(); }, ButtonOption::Border());
 
   auto main_container = Container::Vertical({
     Container::Horizontal({
@@ -527,7 +549,15 @@ int main() {
     }
   });
 
-  screen.Loop(main_renderer);
+    // disabling animations
+   screen.PreventAnimation();
+
+   while (!Terminal::Current().WaitForTerminalInput(5))
+   {
+      Terminal::Current().output << "\rWiserHome TUI - Press a key to continue";
+   }
+   screen.Loop(main_renderer);
+
   refresh_ui_continue = false;
   refresh_ui.join();
 
