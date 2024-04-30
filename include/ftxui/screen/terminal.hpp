@@ -9,34 +9,56 @@
 
 namespace ftxui {
 
-  // The file descriptors of the currently active screen.
-  extern int input_fd; // = STDIN_FILENO;
-  extern int output_fd; // = STDOUT_FILENO;
-  extern std::ostream* pcout; // = &std::cout;
-  
-  std::string CreatePsuedoTerminal(); 
-  void ClosePsuedoTerminal(const std::string& pty_name);
-  bool WaitForTerminalInput(int seconds);
-
 struct Dimensions {
   int dimx;
   int dimy;
 };
 
-namespace Terminal {
-Dimensions Size();
-void SetFallbackSize(const Dimensions& fallbackSize);
+class Terminal {
+public:
+  static Terminal& Current();   
+  static Terminal  Create(int inputFd, int outputFd);
+  
+  Terminal(const Terminal&) = delete;
+  Terminal& operator=(const Terminal&) = delete;
+  Terminal(Terminal&&) = default;
+  Terminal& operator=(Terminal&&) = default;
+  
+  Dimensions Size();
+  void SetFallbackSize(const Dimensions& fallbackSize);
 
-enum Color {
-  Palette1,
-  Palette16,
-  Palette256,
-  TrueColor,
-};
-Color ColorSupport();
-void SetColorSupport(Color color);
+  enum Color {
+    Palette1,
+    Palette16,
+    Palette256,
+    TrueColor,
+  };
 
-}  // namespace Terminal
+  bool WaitForTerminalInput(int seconds);
+  size_t Read(char *buffer, size_t buffer_size);  // NOLINT
+
+  Color ColorSupport();
+  void SetColorSupport(Color color);
+  ~Terminal();
+
+private:
+  Terminal(int input_fd, int output_fd);
+
+  // The file descriptors of the currently active screen.
+  int m_input_fd; // default = STDIN_FILENO;
+  int m_output_fd; // default = STDOUT_FILENO;
+  std::ostream* pcout; // = &std::cout;
+  std::string pty_name;
+  bool g_cached = false;                     // NOLINT
+  Color g_cached_supported_color;  // NOLINT
+
+  std::string CreatePsuedoTerminal(); 
+  void ClosePsuedoTerminal(const std::string& pty_name);
+
+public:
+  std::ostream& output;
+
+};  // class Terminal
 
 }  // namespace ftxui
 

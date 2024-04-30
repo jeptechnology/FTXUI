@@ -69,7 +69,7 @@ ScreenInteractive* g_active_screen = nullptr;  // NOLINT
 
 void Flush() {
   // Emscripten doesn't implement flush. We interpret zero as flush.
-  (*pcout) << '\0' << std::flush;
+  Terminal::Current().output << '\0' << std::flush;
 }
 
 constexpr int timeout_milliseconds = 20;
@@ -158,28 +158,19 @@ void ftxui_on_resize(int columns, int rows) {
 
 #else  // POSIX (Linux & Mac)
 
-int CheckStdinReady(int usec_timeout) {
-  timeval tv = {0, usec_timeout};
-  fd_set fds;
-  FD_ZERO(&fds);                                     // NOLINT
-  FD_SET(input_fd, &fds);                             // NOLINT
-  select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
-  return FD_ISSET(input_fd, &fds);                    // NOLINT
-}
-
 // Read char from the terminal.
 void EventListener(std::atomic<bool>* quit, Sender<Task> out) {
   auto parser = TerminalInputParser(std::move(out));
 
   while (!*quit) {
-    if (!CheckStdinReady(timeout_microseconds)) {
+    if (!Terminal::Current().WaitForTerminalInput(timeout_microseconds)) {
       parser.Timeout(timeout_milliseconds);
       continue;
     }
 
     const size_t buffer_size = 100;
-    std::array<char, buffer_size> buffer;                   // NOLINT;
-    size_t l = read(input_fd, buffer.data(), buffer_size);  // NOLINT
+    std::array<char, buffer_size> buffer;                  // NOLINT;
+    size_t l = Terminal::Current().Read(buffer.data(), buffer_size);  // NOLINT
     for (size_t i = 0; i < l; ++i) {
       parser.Add(buffer[i]);  // NOLINT
     }
@@ -347,6 +338,7 @@ ScreenInteractive::ScreenInteractive(int dimx,
                                      Dimension dimension,
                                      bool use_alternative_screen)
     : Screen(dimx, dimy),
+      terminal_(Terminal::Create(STDIN_FILENO, STDOUT_FILENO)),
       dimension_(dimension),
       use_alternative_screen_(use_alternative_screen) {
   task_receiver_ = MakeReceiver<Task>();
@@ -511,7 +503,7 @@ void ScreenInteractive::PreMain() {
     std::swap(suspended_screen_, g_active_screen);
     // Reset cursor position to the top of the screen and clear the screen.
     suspended_screen_->ResetCursorPosition();
-    (*pcout) << suspended_screen_->ResetPosition(/*clear=*/true);
+    terminal_.output << suspended_screen_->ResetPosition(/*clear=*/true);
     suspended_screen_->dimx_ = 0;
     suspended_screen_->dimy_ = 0;
 
@@ -536,7 +528,7 @@ void ScreenInteractive::PostMain() {
   // Restore suspended screen.
   if (suspended_screen_) {
     // Clear screen, and put the cursor at the beginning of the drawing.
-    (*pcout) << ResetPosition(/*clear=*/true);
+    terminal_.output << ResetPosition(/*clear=*/true);
     dimx_ = 0;
     dimy_ = 0;
     Uninstall();
@@ -545,11 +537,11 @@ void ScreenInteractive::PostMain() {
   } else {
     Uninstall();
 
-    (*pcout) << '\r';
+    terminal_.output << '\r';
     // On final exit, keep the current drawing and reset cursor position one
     // line after it.
     if (!use_alternative_screen_) {
-      (*pcout) << std::endl;
+      terminal_.output << std::endl;
     }
   }
 }
@@ -583,10 +575,10 @@ void ScreenInteractive::Install() {
 
   // Request the terminal to report the current cursor shape. We will restore it
   // on exit.
-  (*pcout) << DECRQSS_DECSCUSR;
+  terminal_.output << DECRQSS_DECSCUSR;
   on_exit_functions.push([this] {
-    (*pcout) << "\033[?25h";  // Enable cursor.
-    (*pcout) << "\033[" + std::to_string(cursor_reset_shape_) + " q";
+    terminal_.output << "\033[?25h";  // Enable cursor.
+    terminal_.output << "\033[" + std::to_string(cursor_reset_shape_) + " q";
   });
 
   // Install signal handlers to restore the terminal state on exit. The default
@@ -632,8 +624,8 @@ void ScreenInteractive::Install() {
   }
 
   struct termios terminal;  // NOLINT
-  tcgetattr(input_fd, &terminal);
-  on_exit_functions.push([=] { tcsetattr(input_fd, TCSANOW, &terminal); });
+  tcgetattr(STDIN_FILENO, &terminal);
+  on_exit_functions.push([=] { tcsetattr(STDIN_FILENO, TCSANOW, &terminal); });
 
   terminal.c_lflag &= ~ICANON;  // NOLINT Non canonique terminal.
   terminal.c_lflag &= ~ECHO;    // NOLINT Do not print after a key press.
@@ -643,18 +635,18 @@ void ScreenInteractive::Install() {
   // fcntl(input_fd, F_SETFL, oldf | O_NONBLOCK);
   // on_exit_functions.push([=] { fcntl(input_fd, F_GETFL, oldf); });
 
-  tcsetattr(input_fd, TCSANOW, &terminal);
+  tcsetattr(STDIN_FILENO, TCSANOW, &terminal);
 
 #endif
 
   auto enable = [&](const std::vector<DECMode>& parameters) {
-    (*pcout) << Set(parameters);
-    on_exit_functions.push([=] { (*pcout) << Reset(parameters); });
+    terminal_.output << Set(parameters);
+    on_exit_functions.push([=] { terminal_.output << Reset(parameters); });
   };
 
   auto disable = [&](const std::vector<DECMode>& parameters) {
-    (*pcout) << Reset(parameters);
-    on_exit_functions.push([=] { (*pcout) << Set(parameters); });
+    terminal_.output << Reset(parameters);
+    on_exit_functions.push([=] { terminal_.output << Set(parameters); });
   };
 
   if (use_alternative_screen_) {
@@ -783,7 +775,7 @@ void ScreenInteractive::Draw(Component component) {
   auto document = component->Render();
   int dimx = 0;
   int dimy = 0;
-  auto terminal = Terminal::Size();
+  auto terminal = terminal_.Size();
   document->ComputeRequirement();
   switch (dimension_) {
     case Dimension::Fixed:
@@ -806,7 +798,7 @@ void ScreenInteractive::Draw(Component component) {
 
   const bool resized = (dimx != dimx_) || (dimy != dimy_);
   ResetCursorPosition();
-  (*pcout) << ResetPosition(/*clear=*/resized);
+  terminal_.output << ResetPosition(/*clear=*/resized);
 
   // Resize the screen if needed.
   if (resized) {
@@ -830,14 +822,14 @@ void ScreenInteractive::Draw(Component component) {
   static int i = -3;
   ++i;
   if (!use_alternative_screen_ && (i % 150 == 0)) {  // NOLINT
-    (*pcout) << DeviceStatusReport(DSRMode::kCursor);
+    terminal_.output << DeviceStatusReport(DSRMode::kCursor);
   }
 #else
   static int i = -3;
   ++i;
   if (!use_alternative_screen_ &&
       (previous_frame_resized_ || i % 40 == 0)) {  // NOLINT
-    (*pcout) << DeviceStatusReport(DSRMode::kCursor);
+    terminal_.output << DeviceStatusReport(DSRMode::kCursor);
   }
 #endif
   previous_frame_resized_ = resized;
@@ -863,7 +855,7 @@ void ScreenInteractive::Draw(Component component) {
     }
   }
 
-  (*pcout) << ToString() << set_cursor_position;
+  terminal_.output << ToString() << set_cursor_position;
   Flush();
   Clear();
   frame_valid_ = true;
@@ -871,7 +863,7 @@ void ScreenInteractive::Draw(Component component) {
 
 // private
 void ScreenInteractive::ResetCursorPosition() {
-  (*pcout) << reset_cursor_position;
+  terminal_.output << reset_cursor_position;
   reset_cursor_position = "";
 }
 
@@ -906,7 +898,7 @@ void ScreenInteractive::Signal(int signal) {
   if (signal == SIGTSTP) {
     Post([&] {
       ResetCursorPosition();
-      (*pcout) << ResetPosition(/*clear*/ true);  // Cursor to the beginning
+      terminal_.output << ResetPosition(/*clear*/ true);  // Cursor to the beginning
       Uninstall();
       dimx_ = 0;
       dimy_ = 0;

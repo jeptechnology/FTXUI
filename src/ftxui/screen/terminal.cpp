@@ -24,8 +24,9 @@
 #include <unistd.h>     // for STDOUT_FILENO
 #endif
 
-namespace ftxui {
 
+namespace
+{
   class fdoutbuf : public std::streambuf 
   {
     protected:
@@ -62,60 +63,55 @@ namespace ftxui {
       fdostream (int fd) : std::ostream(0), buf(fd) {
           rdbuf(&buf);
       }
-  };    
+  };
 
-  int input_fd = STDIN_FILENO;
-  int output_fd = STDOUT_FILENO;
-  int psuedo_fd[2];
-  std::ostream* pcout = &std::cout;
- 
-  std::string CreatePsuedoTerminal()
+  ftxui::Terminal* g_currentTerminal;
+}
+
+namespace ftxui {
+
+  Terminal::Terminal(int input_fd, int output_fd)
+    : m_input_fd(input_fd)
+    , m_output_fd(output_fd)
+    , pcout(new fdostream(output_fd))
+    , output(*pcout)
   {
-    char buf[256];
-    struct termios tty;
-    tty.c_iflag = (tcflag_t) 0;
-    tty.c_lflag = (tcflag_t) 0;
-    tty.c_cflag = CS8;
-    tty.c_oflag = (tcflag_t) 0;
-
-    auto e = openpty(&psuedo_fd[0], &psuedo_fd[1], buf, &tty, nullptr);
-    if(0 > e) {
-      std::printf("Error: %s\n", strerror(errno));
-      return "";
-    }
-
-    // both our input and output should use the psuedo_fd[0]
-    input_fd = psuedo_fd[0];
-    output_fd = psuedo_fd[0];
-    pcout = new fdostream(output_fd);
-
-    return buf;
+    g_currentTerminal = this;
   }
 
-  void ClosePsuedoTerminal(const std::string& pty_name)
+  Terminal::~Terminal()
   {
-    if (pcout != &std::cout)
+    delete pcout;
+  }
+
+  Terminal& Terminal::Current()
+  {
+    if (g_currentTerminal == nullptr)
     {
-      delete pcout;
-      close(psuedo_fd[1]);
-      close(psuedo_fd[0]);
+      g_currentTerminal = new Terminal(STDIN_FILENO, STDOUT_FILENO);
     }
+    return *g_currentTerminal;
   }
 
-  bool WaitForTerminalInput(int seconds)
+  Terminal Terminal::Create(int inputFd, int outputFd)
+  {
+    return Terminal(inputFd, outputFd);
+  }
+
+  bool Terminal::WaitForTerminalInput(int seconds)
   {
     timeval tv = {seconds, 0};
     fd_set fds;
     FD_ZERO(&fds);                                     // NOLINT
-    FD_SET(input_fd, &fds);                             // NOLINT
-    select(input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
-    return FD_ISSET(input_fd, &fds);                    // NOLINT
+    FD_SET(m_input_fd, &fds);                             // NOLINT
+    select(m_input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
+    return FD_ISSET(m_input_fd, &fds);                    // NOLINT
   }
 
-namespace {
-
-bool g_cached = false;                     // NOLINT
-Terminal::Color g_cached_supported_color;  // NOLINT
+  size_t Terminal::Read(char *buffer, size_t buffer_size)
+  {
+    return read(m_input_fd, buffer, buffer_size);  // NOLINT
+  }
 
 Dimensions& FallbackSize() {
 #if defined(__EMSCRIPTEN__)
@@ -175,14 +171,10 @@ Terminal::Color ComputeColorSupport() {
   return Terminal::Color::Palette16;
 }
 
-}  // namespace
-
-namespace Terminal {
-
 /// @brief Get the terminal size.
 /// @return The terminal size.
 /// @ingroup screen
-Dimensions Size() {
+Dimensions Terminal::Size() {
 #if defined(__EMSCRIPTEN__)
   // This dimension was chosen arbitrarily to be able to display:
   // https://arthursonzogni.com/FTXUI/examples
@@ -200,7 +192,7 @@ Dimensions Size() {
   return FallbackSize();
 #else
   winsize w{};
-  const int status = ioctl(output_fd, TIOCGWINSZ, &w);  // NOLINT
+  const int status = ioctl(m_output_fd, TIOCGWINSZ, &w);  // NOLINT
   // The ioctl return value result should be checked. Some operating systems
   // don't support TIOCGWINSZ.
   if (w.ws_col == 0 || w.ws_row == 0 || status < 0) {
@@ -218,7 +210,7 @@ void SetFallbackSize(const Dimensions& fallbackSize) {
 
 /// @brief Get the color support of the terminal.
 /// @ingroup screen
-Color ColorSupport() {
+Terminal::Color Terminal::ColorSupport() {
   if (!g_cached) {
     g_cached = true;
     g_cached_supported_color = ComputeColorSupport();
@@ -228,10 +220,9 @@ Color ColorSupport() {
 
 /// @brief Override terminal color support in case auto-detection fails
 /// @ingroup dom
-void SetColorSupport(Color color) {
+void Terminal::SetColorSupport(Terminal::Color color) {
   g_cached = true;
   g_cached_supported_color = color;
 }
 
-}  // namespace Terminal
 }  // namespace ftxui

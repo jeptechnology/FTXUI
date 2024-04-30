@@ -377,7 +377,7 @@ Dimensions Dimension::Fixed(int v) {
 /// @see Fixed
 /// @see Fit
 Dimensions Dimension::Full() {
-  return Terminal::Size();
+  return Terminal::Current().Size();
 }
 
 // static
@@ -447,7 +447,7 @@ std::string Screen::ToString() const {
 
 // Print the Screen to the terminal.
 void Screen::Print() const {
-  (*pcout) << ToString() << '\0' << std::flush;
+  Terminal::Current().output << ToString() << '\0' << std::flush;
 }
 
 /// @brief Access a character in a cell at a given position.

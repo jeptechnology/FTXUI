@@ -79,6 +79,7 @@ class ScreenInteractive : public Screen {
 
   void Signal(int signal);
 
+  Terminal terminal_;
   ScreenInteractive* suspended_screen_ = nullptr;
   enum class Dimension {
     FitComponent,

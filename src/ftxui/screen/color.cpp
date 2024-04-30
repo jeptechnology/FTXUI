@@ -81,7 +81,7 @@ Color::Color(Palette16 index) : type_(ColorType::Palette16), red_(index) {}
 /// @brief Build a transparent using Palette256 colors.
 /// @ingroup screen
 Color::Color(Palette256 index) : type_(ColorType::Palette256), red_(index) {
-  if (Terminal::ColorSupport() >= Terminal::Color::Palette256) {
+  if (Terminal::Current().ColorSupport() >= Terminal::Color::Palette256) {
     return;
   }
   type_ = ColorType::Palette16;
@@ -97,7 +97,7 @@ Color::Color(Palette256 index) : type_(ColorType::Palette256), red_(index) {
 /// @ingroup screen
 Color::Color(uint8_t red, uint8_t green, uint8_t blue)
     : type_(ColorType::TrueColor), red_(red), green_(green), blue_(blue) {
-  if (Terminal::ColorSupport() == Terminal::Color::TrueColor) {
+  if (Terminal::Current().ColorSupport() == Terminal::Color::TrueColor) {
     return;
   }
 
@@ -119,7 +119,7 @@ Color::Color(uint8_t red, uint8_t green, uint8_t blue)
     }
   }
 
-  if (Terminal::ColorSupport() == Terminal::Color::Palette256) {
+  if (Terminal::Current().ColorSupport() == Terminal::Color::Palette256) {
     type_ = ColorType::Palette256;
     red_ = best;
   } else {
