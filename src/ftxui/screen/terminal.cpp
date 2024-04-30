@@ -105,7 +105,7 @@ namespace ftxui {
   {
     timeval tv = {seconds, microseconds};
     fd_set fds;
-    FD_ZERO(&fds);                                     // NOLINT
+    FD_ZERO(&fds);                                        // NOLINT
     FD_SET(m_input_fd, &fds);                             // NOLINT
     select(m_input_fd + 1, &fds, nullptr, nullptr, &tv);  // NOLINT
     return FD_ISSET(m_input_fd, &fds);                    // NOLINT
@@ -225,9 +225,10 @@ Dimensions Terminal::GetPsuedoTerminalSize() {
   std::string input;
   
   char ch;
-  Read(&ch, 1, 1000);  // read the response (hopefully
+  auto bytesRead = Read(&ch, 1, 100);  // read the response (hopefully
 
-  while (ch > 0 && ch != 'R')  // R terminates the response
+  int count = 0;
+  while (count < 10 && bytesRead > 0 && ch != 'R')  // R terminates the response
   {
     if (EOF == ch || input.size() > 100) {
       break;
@@ -235,9 +236,14 @@ Dimensions Terminal::GetPsuedoTerminalSize() {
     if (isprint(ch)) {
       input.push_back(ch);
     }
-    Read(&ch, 1, 1000);  // read the response (hopefully
+    count++;
+    bytesRead = Read(&ch, 1, 100);  // read the response (hopefully
   }
-
+  
+  if (input.empty()) {
+    return FallbackSize();
+  }
+  
   output << "\033[18t";  // move to upper left corner
 
   if (2 == sscanf(input.c_str(), "[%d;%d", &g_cached_dimensions.dimy, &g_cached_dimensions.dimx)) {
