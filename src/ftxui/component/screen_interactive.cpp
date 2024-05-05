@@ -647,12 +647,12 @@ void ScreenInteractive::Install() {
 
   auto enable = [&](const std::vector<DECMode>& parameters) {
     terminal_.output << Set(parameters);
-    on_exit_functions.push([=] { terminal_.output << Reset(parameters); });
+    on_exit_functions.push([this, parameters] { terminal_.output << Reset(parameters); });
   };
 
   auto disable = [&](const std::vector<DECMode>& parameters) {
     terminal_.output << Reset(parameters);
-    on_exit_functions.push([=] { terminal_.output << Set(parameters); });
+    on_exit_functions.push([this, parameters] { terminal_.output << Set(parameters); });
   };
 
   if (use_alternative_screen_) {
