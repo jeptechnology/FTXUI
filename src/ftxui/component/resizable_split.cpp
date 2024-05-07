@@ -35,7 +35,7 @@ class ResizableSplitBase : public ComponentBase {
     }
     return ComponentBase::OnEvent(std::move(event));
   }
-
+  
   bool OnMouseEvent(Event event) {
     if (captured_mouse_ && event.mouse().motion == Mouse::Released) {
       captured_mouse_.reset();
@@ -44,9 +44,16 @@ class ResizableSplitBase : public ComponentBase {
 
     if (event.mouse().button == Mouse::Left &&
         event.mouse().motion == Mouse::Pressed &&
-        separator_box_.Contain(event.mouse().x, event.mouse().y) &&
-        !captured_mouse_) {
-      captured_mouse_ = CaptureMouse(event);
+        separator_box_.Contain(event.mouse().x, event.mouse().y)) 
+    {
+      if (!captured_mouse_)
+      {
+        captured_mouse_ = CaptureMouse(event);
+      }
+      else
+      {
+        captured_mouse_.reset();
+      }
       return true;
     }
 
