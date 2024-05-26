@@ -362,7 +362,7 @@ ScreenInteractive ScreenInteractive::Custom(int intput_fd, int output_fd)
       0,
       0,
       Dimension::Fullscreen,
-      false,
+      true,
       intput_fd,
       output_fd
   };

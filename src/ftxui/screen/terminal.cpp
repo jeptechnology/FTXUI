@@ -5,6 +5,7 @@
 #include <string>   // for string, allocator
 
 #include "ftxui/screen/terminal.hpp"
+#include "ftxui/component/screen_interactive.hpp"
 #include <sys/select.h>  // for select, FD_ISSET, FD_SET, FD_ZERO, fd_set, timeval
 #include <termios.h>  // for tcsetattr, termios, tcgetattr, TCSANOW, cc_t, ECHO, ICANON, VMIN, VTIME
 #include <unistd.h>  // for STDIN_FILENO, read
@@ -221,32 +222,37 @@ Dimensions Terminal::GetPsuedoTerminalSize() {
   }
 
   output << "\0337\033[r\033[999;999H\033[6n\0338";
-
-  std::string input;
+  output.flush();
   
   char ch;
-  auto bytesRead = Read(&ch, 1, 100);  // read the response (hopefully
+  std::string input;
 
-  int count = 0;
-  while (count < 10 && bytesRead > 0 && ch != 'R')  // R terminates the response
-  {
-    if (EOF == ch || input.size() > 100) {
-      break;
+  while ( Read(&ch, 1, 100) > 0 && ch != 'R') { // R terminates the response
+    if ( EOF == ch) {
+        break;
     }
-    if (isprint(ch)) {
+    if ( isprint ( ch)) {
       input.push_back(ch);
     }
-    count++;
-    bytesRead = Read(&ch, 1, 100);  // read the response (hopefully
   }
-  
+ 
   if (input.empty()) {
     return FallbackSize();
   }
   
-  output << "\033[18t";  // move to upper left corner
-
   if (2 == sscanf(input.c_str(), "[%d;%d", &g_cached_dimensions.dimy, &g_cached_dimensions.dimx)) {
+    // ensure we have at least 80 cols
+    if (g_cached_dimensions.dimx < 80) {
+      g_cached_dimensions.dimx = 80;
+    }
+    
+    // ensure we have at least 24 rows
+    if (g_cached_dimensions.dimy < 24) {
+      g_cached_dimensions.dimy = 24;
+    }
+
+    g_cached_dimensions_time = std::chrono::steady_clock::now();
+
     return g_cached_dimensions;
   } else {
     return FallbackSize();
@@ -279,6 +285,27 @@ Dimensions Terminal::Size() {
   return FallbackSize();
 #else
   if (m_output_fd != STDOUT_FILENO) {
+
+    if (g_cached_dimensions_time + std::chrono::seconds(2) > std::chrono::steady_clock::now())
+    {
+      ForceRecalculateSize();
+    }
+
+    if (g_cached_dimensions.dimx != 0 && g_cached_dimensions.dimy != 0) 
+    {
+      return g_cached_dimensions;  // already set
+    }
+
+    // We have no cached size, so we need to calculate    
+
+    if (auto screen = ScreenInteractive::Active())
+    {
+      // if we have a screen up and running, we need to restore settings before we can calculate the size
+      screen->WithRestoredIO([&] {
+        GetPsuedoTerminalSize(); // calculate the size and cache the result
+      })();
+    }
+    
     return GetPsuedoTerminalSize();
   }
 

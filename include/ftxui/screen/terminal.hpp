@@ -7,6 +7,7 @@
 #include <iostream>
 #include <unistd.h>  // for STDIN_FILENO, STDOUT_FILENO
 #include <memory>    // for unique_ptr
+#include <chrono>
 
 struct termios;
 
@@ -60,11 +61,9 @@ private:
   std::string pty_name;
   bool g_cached = false;                     // NOLINT
   Dimensions g_cached_dimensions{0,0};            // NOLINT
+  std::chrono::steady_clock::time_point g_cached_dimensions_time;  // NOLINT
   Color g_cached_supported_color;  // NOLINT
   std::unique_ptr<struct termios> m_oldTerminalState;  // NOLINT
-
-  std::string CreatePsuedoTerminal(); 
-  void ClosePsuedoTerminal(const std::string& pty_name);
 
 public:
   std::ostream& output;
