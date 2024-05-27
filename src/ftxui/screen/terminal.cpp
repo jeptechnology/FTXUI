@@ -286,11 +286,6 @@ Dimensions Terminal::Size() {
 #else
   if (m_output_fd != STDOUT_FILENO) {
 
-    if (g_cached_dimensions_time + std::chrono::seconds(2) > std::chrono::steady_clock::now())
-    {
-      ForceRecalculateSize();
-    }
-
     if (g_cached_dimensions.dimx != 0 && g_cached_dimensions.dimy != 0) 
     {
       return g_cached_dimensions;  // already set
