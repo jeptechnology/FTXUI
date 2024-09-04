@@ -2,7 +2,6 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <gtest/gtest.h>
-#include <memory>  // for allocator
 
 #include "ftxui/dom/elements.hpp"  // for LIGHT, flex, center, EMPTY, DOUBLE
 #include "ftxui/dom/node.hpp"      // for Render
@@ -732,6 +731,18 @@ TEST(TableTest, Merge) {
       "│g┃h┃i│\r\n"
       "└─┺━┹─┘",
       screen.ToString());
+}
+
+TEST(TableTest, Issue912) {
+  Table({
+      {"a"},
+  });
+  Table({
+      {"a", "b"},
+  });
+  Table({
+      {"a", "b", "c"},
+  });
 }
 
 }  // namespace ftxui

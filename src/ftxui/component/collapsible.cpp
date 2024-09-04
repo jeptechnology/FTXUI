@@ -2,7 +2,6 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <functional>  // for function
-#include <memory>      // for shared_ptr, allocator
 #include <utility>     // for move
 
 #include "ftxui/component/component.hpp"  // for Checkbox, Maybe, Make, Vertical, Collapsible
@@ -48,7 +47,7 @@ Component Collapsible(ConstStringRef label, Component child, Ref<bool> show) {
         return hbox({prefix, t});
       };
       Add(Container::Vertical({
-          Checkbox(label, show_.operator->(), opt),
+          Checkbox(std::move(label), show_.operator->(), opt),
           Maybe(std::move(child), show_.operator->()),
       }));
     }

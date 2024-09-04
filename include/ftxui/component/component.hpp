@@ -6,9 +6,7 @@
 
 #include <functional>  // for function
 #include <memory>      // for make_shared, shared_ptr
-#include <string>      // for wstring
 #include <utility>     // for forward
-#include <vector>      // for vector
 
 #include "ftxui/component/component_base.hpp"  // for Component, Components
 #include "ftxui/component/component_options.hpp"  // for ButtonOption, CheckboxOption, MenuOption
@@ -74,10 +72,8 @@ Component Radiobox(ConstStringListRef entries,
                    int* selected_,
                    RadioboxOption options = {});
 
-Component Dropdown(ConstStringListRef entries,
-                   int* selected,
-                   DropdownOption options = {});
-                   
+Component Dropdown(ConstStringListRef entries, int* selected);
+Component Dropdown(DropdownOption options);
 Component Toggle(ConstStringListRef entries, int* selected);
 
 // General slider constructor:
@@ -97,9 +93,9 @@ Component Slider(ConstStringRef label,
                  ConstRef<float> increment = 5.f);
 Component Slider(ConstStringRef label,
                  Ref<long> value,
-                 ConstRef<long> min = 0l,
-                 ConstRef<long> max = 100l,
-                 ConstRef<long> increment = 5l);
+                 ConstRef<long> min = 0L,
+                 ConstRef<long> max = 100L,
+                 ConstRef<long> increment = 5L);
 
 Component ResizableSplit(ResizableSplitOption options);
 Component ResizableSplitLeft(Component main, Component back, int* main_size);

@@ -8,12 +8,12 @@
 #include <optional>  // for optional, nullopt
 #include <string>    // for basic_string, string
 #include <utility>   // for move
-#include <vector>    // for __alloc_traits<>::value_type
 
 #include "ftxui/dom/elements.hpp"  // for unpack, Element, Decorator, BorderStyle, ROUNDED, borderStyled, Elements, DASHED, DOUBLE, EMPTY, HEAVY, LIGHT, border, borderDashed, borderDouble, borderEmpty, borderHeavy, borderLight, borderRounded, borderWith, window
 #include "ftxui/dom/node.hpp"      // for Node, Elements
 #include "ftxui/dom/requirement.hpp"  // for Requirement
 #include "ftxui/screen/box.hpp"       // for Box
+#include "ftxui/screen/pixel.hpp"     // for Pixel
 #include "ftxui/screen/screen.hpp"    // for Pixel, Screen
 
 namespace ftxui {
@@ -38,7 +38,8 @@ class Border : public Node {
          BorderStyle style,
          std::optional<Color> foreground_color = std::nullopt)
       : Node(std::move(children)),
-        charset_(simple_border_charset[style]),
+        charset_(simple_border_charset[style])  // NOLINT
+        ,
         foreground_color_(foreground_color) {}  // NOLINT
 
   const Charset& charset_;  // NOLINT
@@ -479,6 +480,7 @@ Element borderEmpty(Element child) {
 /// @brief Draw window with a title and a border around the element.
 /// @param title The title of the window.
 /// @param content The element to be wrapped.
+/// @param border The style of the border. Default is ROUNDED.
 /// @ingroup dom
 /// @see border
 ///
@@ -487,6 +489,12 @@ Element borderEmpty(Element child) {
 /// ```cpp
 /// Element document = window(text("Title"),
 ///                           text("content")
+///                    );
+///
+/// // With specifying border
+/// Element document = window(text("Title"),
+///                           text("content"),
+///                           ROUNDED
 ///                    );
 /// ```
 ///
@@ -497,8 +505,8 @@ Element borderEmpty(Element child) {
 /// │content│
 /// └───────┘
 /// ```
-Element window(Element title, Element content) {
+Element window(Element title, Element content, BorderStyle border) {
   return std::make_shared<Border>(unpack(std::move(content), std::move(title)),
-                                  ROUNDED);
+                                  border);
 }
 }  // namespace ftxui

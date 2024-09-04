@@ -3,12 +3,10 @@
 // the LICENSE file.
 
 #include <functional>  // for function
-#include <memory>      // for shared_ptr
 #include <utility>     // for move
 
 #include "ftxui/component/animation.hpp"  // for Animator, Params (ptr only)
-#include "ftxui/component/captured_mouse.hpp"  // for CapturedMouse
-#include "ftxui/component/component.hpp"       // for Make, Button
+#include "ftxui/component/component.hpp"  // for Make, Button
 #include "ftxui/component/component_base.hpp"  // for ComponentBase
 #include "ftxui/component/component_options.hpp"  // for ButtonOption, AnimatedColorOption, AnimatedColorsOption, EntryState
 #include "ftxui/component/event.hpp"  // for Event, Event::Return
@@ -104,7 +102,7 @@ class ButtonBase : public ComponentBase, public ButtonOption {
 
     // TODO(arthursonzogni): Consider posting the task to the main loop, instead
     // of invoking it immediately.
-    on_click(); // May delete this.
+    on_click();  // May delete this.
   }
 
   bool OnEvent(Event event) override {
@@ -113,7 +111,7 @@ class ButtonBase : public ComponentBase, public ButtonOption {
     }
 
     if (event == Event::Return) {
-      OnClick(); // May delete this.
+      OnClick();  // May delete this.
       return true;
     }
     return false;
@@ -130,7 +128,7 @@ class ButtonBase : public ComponentBase, public ButtonOption {
     if (event.mouse().button == Mouse::Left &&
         event.mouse().motion == Mouse::Pressed) {
       TakeFocus();
-      OnClick(); // May delete this.
+      OnClick();  // May delete this.
       return true;
     }
 
@@ -207,7 +205,7 @@ Component Button(ButtonOption option) {
 Component Button(ConstStringRef label,
                  std::function<void()> on_click,
                  ButtonOption option) {
-  option.label = label;
+  option.label = std::move(label);
   option.on_click = std::move(on_click);
   return Make<ButtonBase>(std::move(option));
 }

@@ -5,8 +5,7 @@
 #include <ftxui/dom/direction.hpp>  // for Direction, Direction::Down, Direction::Left, Direction::Right, Direction::Up
 #include <ftxui/util/ref.hpp>       // for Ref
 #include <functional>               // for function
-#include <memory>   // for __shared_ptr_access, shared_ptr, allocator
-#include <utility>  // for move
+#include <utility>                  // for move
 
 #include "ftxui/component/captured_mouse.hpp"  // for CapturedMouse
 #include "ftxui/component/component.hpp"  // for Horizontal, Make, ResizableSplit, ResizableSplitBottom, ResizableSplitLeft, ResizableSplitRight, ResizableSplitTop
@@ -23,10 +22,32 @@ class ResizableSplitBase : public ComponentBase {
  public:
   explicit ResizableSplitBase(ResizableSplitOption options)
       : options_(std::move(options)) {
-    Add(Container::Horizontal({
-        options_->main,
-        options_->back,
-    }));
+    switch (options_->direction()) {
+      case Direction::Left:
+        Add(Container::Horizontal({
+            options_->main,
+            options_->back,
+        }));
+        break;
+      case Direction::Right:
+        Add(Container::Horizontal({
+            options_->back,
+            options_->main,
+        }));
+        break;
+      case Direction::Up:
+        Add(Container::Vertical({
+            options_->main,
+            options_->back,
+        }));
+        break;
+      case Direction::Down:
+        Add(Container::Vertical({
+            options_->back,
+            options_->main,
+        }));
+        break;
+    }
   }
 
   bool OnEvent(Event event) final {

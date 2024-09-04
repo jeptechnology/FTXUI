@@ -8,6 +8,7 @@
 #include <cstdint>                 // for uint8_t
 #include <cstdlib>                 // for abs
 #include <ftxui/screen/color.hpp>  // for Color
+#include <functional>              // for function
 #include <map>                     // for map
 #include <memory>                  // for make_shared
 #include <utility>                 // for move, pair
@@ -17,6 +18,8 @@
 #include "ftxui/dom/node.hpp"         // for Node
 #include "ftxui/dom/requirement.hpp"  // for Requirement
 #include "ftxui/screen/box.hpp"       // for Box
+#include "ftxui/screen/image.hpp"     // for Image
+#include "ftxui/screen/pixel.hpp"     // for Pixel
 #include "ftxui/screen/screen.hpp"    // for Pixel, Screen
 #include "ftxui/screen/string.hpp"    // for Utf8ToGlyphs
 #include "ftxui/util/ref.hpp"         // for ConstRef
@@ -28,7 +31,7 @@ namespace {
 // Base UTF8 pattern:
 // 11100010 10100000 10000000 // empty
 
-// Pattern for the individuel dots:
+// Pattern for the individual dots:
 // ┌──────┬───────┐
 // │dot1  │ dot4  │
 // ├──────┼───────┤
@@ -341,7 +344,7 @@ void Canvas::DrawPointEllipse(int x1,
   int dy = x * x;
   int err = dx + dy;
 
-  do {
+  do {  // NOLINT
     DrawPoint(x1 - x, y1 + y, true, s);
     DrawPoint(x1 + x, y1 + y, true, s);
     DrawPoint(x1 + x, y1 - y, true, s);
@@ -405,7 +408,7 @@ void Canvas::DrawPointEllipseFilled(int x1,
   int dy = x * x;
   int err = dx + dy;
 
-  do {
+  do {  // NOLINT
     for (int xx = x1 + x; xx <= x1 - x; ++xx) {
       DrawPoint(xx, y1 + y, true, s);
       DrawPoint(xx, y1 - y, true, s);
@@ -686,7 +689,7 @@ void Canvas::DrawBlockEllipse(int x1,
   int dy = x * x;
   int err = dx + dy;
 
-  do {
+  do {  // NOLINT
     DrawBlock(x1 - x, 2 * (y1 + y), true, s);
     DrawBlock(x1 + x, 2 * (y1 + y), true, s);
     DrawBlock(x1 + x, 2 * (y1 - y), true, s);
@@ -752,7 +755,7 @@ void Canvas::DrawBlockEllipseFilled(int x1,
   int dy = x * x;
   int err = dx + dy;
 
-  do {
+  do {  // NOLINT
     for (int xx = x1 + x; xx <= x1 - x; ++xx) {
       DrawBlock(xx, 2 * (y1 + y), true, s);
       DrawBlock(xx, 2 * (y1 - y), true, s);
@@ -810,10 +813,46 @@ void Canvas::DrawText(int x,
       continue;
     }
     Cell& cell = storage_[XY{x / 2, y / 4}];
-    cell.type = CellType::kText;
+    cell.type = CellType::kCell;
     cell.content.character = it;
     style(cell.content);
     x += 2;
+  }
+}
+
+/// @brief Directly draw a predefined pixel at the given coordinate
+/// @param x the x coordinate of the pixel.
+/// @param y the y coordinate of the pixel.
+/// @param p the pixel to draw.
+void Canvas::DrawPixel(int x, int y, const Pixel& p) {
+  Cell& cell = storage_[XY{x / 2, y / 4}];
+  cell.type = CellType::kCell;
+  cell.content = p;
+}
+
+/// @brief Draw a predefined image, with top-left corner at the given coordinate
+///   You can supply negative coordinates to align the image however you like -
+///   only the 'visible' portion will be drawn
+/// @param x the x coordinate corresponding to the top-left corner of the image.
+/// @param y the y coordinate corresponding to the top-left corner of the image.
+/// @param image the image to draw.
+void Canvas::DrawImage(int x, int y, const Image& image) {
+  x /= 2;
+  y /= 4;
+  const int dx_begin = std::max(0, -x);
+  const int dy_begin = std::max(0, -y);
+  const int dx_end = std::min(image.dimx(), width_ - x);
+  const int dy_end = std::min(image.dimy(), height_ - y);
+
+  for (int dy = dy_begin; dy < dy_end; ++dy) {
+    for (int dx = dx_begin; dx < dx_end; ++dx) {
+      Cell& cell = storage_[XY{
+          x + dx,
+          y + dy,
+      }];
+      cell.type = CellType::kCell;
+      cell.content = image.PixelAt(dx, dy);
+    }
   }
 }
 

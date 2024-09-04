@@ -2,11 +2,9 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <functional>  // for function
-#include <memory>      // for allocator_traits<>::value_type
 #include <utility>     // for move
 #include <vector>      // for vector
 
-#include "ftxui/component/captured_mouse.hpp"     // for CapturedMouse
 #include "ftxui/component/component.hpp"          // for Make, Radiobox
 #include "ftxui/component/component_base.hpp"     // for ComponentBase
 #include "ftxui/component/component_options.hpp"  // for RadioboxOption, EntryState
@@ -26,7 +24,8 @@ namespace {
 /// @ingroup component
 class RadioboxBase : public ComponentBase, public RadioboxOption {
  public:
-  explicit RadioboxBase(RadioboxOption option) : RadioboxOption(option) {}
+  explicit RadioboxBase(const RadioboxOption& option)
+      : RadioboxOption(option) {}
 
  private:
   Element Render() override {
@@ -205,6 +204,7 @@ class RadioboxBase : public ComponentBase, public RadioboxOption {
 /// ○ entry 2
 /// ○ entry 3
 /// ```
+/// NOLINTNEXTLINE
 Component Radiobox(RadioboxOption option) {
   return Make<RadioboxBase>(std::move(option));
 }
@@ -240,7 +240,7 @@ Component Radiobox(RadioboxOption option) {
 Component Radiobox(ConstStringListRef entries,
                    int* selected,
                    RadioboxOption option) {
-  option.entries = entries;
+  option.entries = std::move(entries);
   option.selected = selected;
   return Make<RadioboxBase>(std::move(option));
 }

@@ -2,8 +2,7 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <ftxui/dom/elements.hpp>  // for Element, text
-#include <memory>  // for shared_ptr, __shared_ptr_access, allocator
-#include <string>  // for string
+#include <string>                  // for string
 
 #include "ftxui/component/component.hpp"  // for Hoverable, Horizontal, operator|=, Renderer
 #include "ftxui/component/component_base.hpp"  // for ComponentBase, Component
@@ -70,10 +69,10 @@ TEST(HoverableTest, BasicCallback) {
   int on_enter_2 = 0;
   int on_leave_1 = 0;
   int on_leave_2 = 0;
-  auto c1 = Hoverable(
-      BasicComponent(), [&] { on_enter_1++; }, [&] { on_leave_1++; });
-  auto c2 = Hoverable(
-      BasicComponent(), [&] { on_enter_2++; }, [&] { on_leave_2++; });
+  auto c1 =
+      Hoverable(BasicComponent(), [&] { on_enter_1++; }, [&] { on_leave_1++; });
+  auto c2 =
+      Hoverable(BasicComponent(), [&] { on_enter_2++; }, [&] { on_leave_2++; });
   auto layout = Container::Horizontal({c1, c2});
   auto screen = Screen(8, 2);
   Render(screen, layout->Render());

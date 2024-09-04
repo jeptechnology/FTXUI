@@ -2,8 +2,7 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 #include <ftxui/dom/direction.hpp>  // for Direction, Direction::Down, Direction::Left, Direction::Right, Direction::Up
-#include <memory>  // for __shared_ptr_access, shared_ptr, allocator
-#include <string>  // for string
+#include <string>                   // for string
 
 #include "ftxui/component/component.hpp"  // for ResizableSplit, Renderer, ResizableSplitBottom, ResizableSplitLeft, ResizableSplitRight, ResizableSplitTop
 #include "ftxui/component/component_base.hpp"  // for ComponentBase, Component
@@ -19,7 +18,7 @@ namespace ftxui {
 
 namespace {
 Component BasicComponent() {
-  return Renderer([] { return text(""); });
+  return Renderer([](bool focused) { return text(""); });
 }
 
 Event MousePressed(int x, int y) {
@@ -205,6 +204,33 @@ TEST(ResizableSplit, BasicBottomWithCustomSeparator) {
   EXPECT_EQ(position, 2);
   EXPECT_TRUE(component->OnEvent(MouseReleased(1, 1)));
   EXPECT_EQ(position, 2);
+}
+
+TEST(ResizableSplit, NavigationVertical) {
+  int position = 0;
+  auto component_top = BasicComponent();
+  auto component_bottom = BasicComponent();
+  auto component =
+      ResizableSplitTop(component_top, component_bottom, &position);
+
+  EXPECT_TRUE(component_top->Active());
+  EXPECT_FALSE(component_bottom->Active());
+
+  EXPECT_FALSE(component->OnEvent(Event::ArrowRight));
+  EXPECT_TRUE(component_top->Active());
+  EXPECT_FALSE(component_bottom->Active());
+
+  EXPECT_TRUE(component->OnEvent(Event::ArrowDown));
+  EXPECT_FALSE(component_top->Active());
+  EXPECT_TRUE(component_bottom->Active());
+
+  EXPECT_FALSE(component->OnEvent(Event::ArrowDown));
+  EXPECT_FALSE(component_top->Active());
+  EXPECT_TRUE(component_bottom->Active());
+
+  EXPECT_TRUE(component->OnEvent(Event::ArrowUp));
+  EXPECT_TRUE(component_top->Active());
+  EXPECT_FALSE(component_bottom->Active());
 }
 
 }  // namespace ftxui

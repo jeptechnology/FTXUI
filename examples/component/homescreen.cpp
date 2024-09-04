@@ -297,7 +297,7 @@ int main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Spiner
+  // Spinner
   // ---------------------------------------------------------------------------
   auto spinner_tab_renderer = Renderer([&] {
     Elements entries;
@@ -523,15 +523,15 @@ int main() {
       },
       &tab_index);
 
-  auto exit_button = Button(
-      "Exit", [&] { screen.Exit(); }, ButtonOption::Border());
+  auto exit_button =
+      Button("Exit", [&] { screen.Exit(); }, ButtonOption::Animated());
 
   auto main_container = Container::Vertical({
-    Container::Horizontal({
-        tab_selection,
-        exit_button,
-    }),
-    tab_content,
+      Container::Horizontal({
+          tab_selection,
+          exit_button,
+      }),
+      tab_content,
   });
 
   auto main_renderer = Renderer(main_container, [&] {

@@ -3,7 +3,6 @@
 // the LICENSE file.
 #include <memory>   // for make_shared, __shared_ptr_access
 #include <utility>  // for move
-#include <vector>   // for __alloc_traits<>::value_type
 
 #include "ftxui/dom/elements.hpp"  // for Element, unpack, filler, flex, flex_grow, flex_shrink, notflex, xflex, xflex_grow, xflex_shrink, yflex, yflex_grow, yflex_shrink
 #include "ftxui/dom/node.hpp"      // for Elements, Node
@@ -92,14 +91,14 @@ class Flex : public Node {
 
 }  // namespace
 
-/// @brief An element that will take expand proportionnally to the space left in
+/// @brief An element that will take expand proportionally to the space left in
 /// a container.
 /// @ingroup dom
 Element filler() {
   return std::make_shared<Flex>(function_flex);
 }
 
-/// @brief Make a child element to expand proportionnally to the space left in a
+/// @brief Make a child element to expand proportionally to the space left in a
 /// container.
 /// @ingroup dom
 ///

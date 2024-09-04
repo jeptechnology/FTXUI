@@ -1,14 +1,16 @@
 // Copyright 2020 Arthur Sonzogni. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
-#include <cstdint>  // for size_t
+#include <cstddef>  // for size_t
+#include <cstdint>
 #include <iostream>  // for operator<<, stringstream, basic_ostream, flush, cout, ostream
 #include <limits>
 #include <map>      // for _Rb_tree_const_iterator, map, operator!=, operator==
-#include <memory>   // for allocator, allocator_traits<>::value_type
 #include <sstream>  // IWYU pragma: keep
 #include <utility>  // for pair
 
+#include "ftxui/screen/image.hpp"  // for Image
+#include "ftxui/screen/pixel.hpp"  // for Pixel
 #include "ftxui/screen/screen.hpp"
 #include "ftxui/screen/string.hpp"    // for string_width
 #include "ftxui/screen/terminal.hpp"  // for Dimensions, Size
@@ -41,11 +43,6 @@
 namespace ftxui {
 
 namespace {
-
-Pixel& dev_null_pixel() {
-  static Pixel pixel;
-  return pixel;
-}
 
 #if defined(_WIN32)
 void WindowsEmulateVT100Terminal() {
@@ -123,11 +120,11 @@ void UpdatePixelStyle(const Screen* screen,
 }
 
 struct TileEncoding {
-  uint8_t left : 2;
-  uint8_t top : 2;
-  uint8_t right : 2;
-  uint8_t down : 2;
-  uint8_t round : 1;
+  std::uint8_t left : 2;
+  std::uint8_t top : 2;
+  std::uint8_t right : 2;
+  std::uint8_t down : 2;
+  std::uint8_t round : 1;
 
   // clang-format off
   bool operator<(const TileEncoding& other) const {
@@ -392,17 +389,13 @@ Screen Screen::Create(Dimensions dimension) {
   return {dimension.dimx, dimension.dimy};
 }
 
-Screen::Screen(int dimx, int dimy)
-    : stencil{0, dimx - 1, 0, dimy - 1},
-      dimx_(dimx),
-      dimy_(dimy),
-      pixels_(dimy, std::vector<Pixel>(dimx)) {
+Screen::Screen(int dimx, int dimy) : Image{dimx, dimy} {
 #if defined(_WIN32)
   // The placement of this call is a bit weird, however we can assume that
   // anybody who instantiates a Screen object eventually wants to output
-  // something to the console.
-  // As we require UTF8 for all input/output operations we will just switch to
-  // UTF8 encoding here
+  // something to the console. If that is not the case, use an instance of Image
+  // instead. As we require UTF8 for all input/output operations we will just
+  // switch to UTF8 encoding here
   SetConsoleOutputCP(CP_UTF8);
   SetConsoleCP(CP_UTF8);
   WindowsEmulateVT100Terminal();
@@ -433,7 +426,11 @@ std::string Screen::ToString() const {
       if (!previous_fullwidth) {
         UpdatePixelStyle(this, ss, *previous_pixel_ref, pixel);
         previous_pixel_ref = &pixel;
-        ss << pixel.character;
+        if (pixel.character.empty()) {
+          ss << " ";
+        } else {
+          ss << pixel.character;
+        }
       }
       previous_fullwidth = (string_width(pixel.character) == 2);
     }
@@ -448,34 +445,6 @@ std::string Screen::ToString() const {
 // Print the Screen to the terminal.
 void Screen::Print() const {
   Terminal::Current().output << ToString() << '\0' << std::flush;
-}
-
-/// @brief Access a character in a cell at a given position.
-/// @param x The cell position along the x-axis.
-/// @param y The cell position along the y-axis.
-std::string& Screen::at(int x, int y) {
-  return PixelAt(x, y).character;
-}
-
-/// @brief Access a character in a cell at a given position.
-/// @param x The cell position along the x-axis.
-/// @param y The cell position along the y-axis.
-const std::string& Screen::at(int x, int y) const {
-  return PixelAt(x, y).character;
-}
-
-/// @brief Access a cell (Pixel) at a given position.
-/// @param x The cell position along the x-axis.
-/// @param y The cell position along the y-axis.
-Pixel& Screen::PixelAt(int x, int y) {
-  return stencil.Contain(x, y) ? pixels_[y][x] : dev_null_pixel();
-}
-
-/// @brief Access a cell (Pixel) at a given position.
-/// @param x The cell position along the x-axis.
-/// @param y The cell position along the y-axis.
-const Pixel& Screen::PixelAt(int x, int y) const {
-  return stencil.Contain(x, y) ? pixels_[y][x] : dev_null_pixel();
 }
 
 /// @brief Return a string to be printed in order to reset the cursor position
@@ -517,11 +486,8 @@ std::string Screen::ResetPosition(bool clear) const {
 
 /// @brief Clear all the pixel from the screen.
 void Screen::Clear() {
-  for (auto& line : pixels_) {
-    for (auto& cell : line) {
-      cell = Pixel();
-    }
-  }
+  Image::Clear();
+
   cursor_.x = dimx_ - 1;
   cursor_.y = dimy_ - 1;
 
@@ -558,20 +524,20 @@ void Screen::ApplyShader() {
 }
 // clang-format on
 
-uint8_t Screen::RegisterHyperlink(const std::string& link) {
-  for (size_t i = 0; i < hyperlinks_.size(); ++i) {
+std::uint8_t Screen::RegisterHyperlink(const std::string& link) {
+  for (std::size_t i = 0; i < hyperlinks_.size(); ++i) {
     if (hyperlinks_[i] == link) {
       return i;
     }
   }
-  if (hyperlinks_.size() == std::numeric_limits<uint8_t>::max()) {
+  if (hyperlinks_.size() == std::numeric_limits<std::uint8_t>::max()) {
     return 0;
   }
   hyperlinks_.push_back(link);
   return hyperlinks_.size() - 1;
 }
 
-const std::string& Screen::Hyperlink(uint8_t id) const {
+const std::string& Screen::Hyperlink(std::uint8_t id) const {
   if (id >= hyperlinks_.size()) {
     return hyperlinks_[0];
   }
