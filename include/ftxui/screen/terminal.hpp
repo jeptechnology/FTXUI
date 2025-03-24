@@ -26,7 +26,7 @@ public:
   Terminal(const Terminal&) = delete;
   Terminal& operator=(const Terminal&) = delete;
   Terminal(Terminal&&) = default;
-  Terminal& operator=(Terminal&&) = default;
+  Terminal& operator=(Terminal&&) = delete;
   
   void Install();
   void Uninstall();
