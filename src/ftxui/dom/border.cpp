@@ -54,10 +54,10 @@ class Border : public Node {
       requirement_.min_x =
           std::max(requirement_.min_x, children_[1]->requirement().min_x + 2);
     }
-    requirement_.selected_box.x_min++;
-    requirement_.selected_box.x_max++;
-    requirement_.selected_box.y_min++;
-    requirement_.selected_box.y_max++;
+    requirement_.focused.box.x_min++;
+    requirement_.focused.box.x_max++;
+    requirement_.focused.box.y_min++;
+    requirement_.focused.box.y_max++;
   }
 
   void SetBox(Box box) override {
@@ -65,7 +65,8 @@ class Border : public Node {
     if (children_.size() == 2) {
       Box title_box;
       title_box.x_min = box.x_min + 1;
-      title_box.x_max = box.x_max - 1;
+      title_box.x_max = std::min(box.x_max - 1,
+                                 box.x_min + children_[1]->requirement().min_x);
       title_box.y_min = box.y_min;
       title_box.y_max = box.y_min;
       children_[1]->SetBox(title_box);
@@ -145,10 +146,8 @@ class BorderPixel : public Node {
       requirement_.min_x =
           std::max(requirement_.min_x, children_[1]->requirement().min_x + 2);
     }
-    requirement_.selected_box.x_min++;
-    requirement_.selected_box.x_max++;
-    requirement_.selected_box.y_min++;
-    requirement_.selected_box.y_max++;
+
+    requirement_.focused.box.Shift(1, 1);
   }
 
   void SetBox(Box box) override {
@@ -267,7 +266,7 @@ Decorator borderStyled(BorderStyle style, Color foreground_color) {
   };
 }
 
-/// @brief Draw a light border around the element.
+/// @brief Draw a dashed border around the element.
 /// @ingroup dom
 /// @see border
 /// @see borderLight
@@ -302,7 +301,7 @@ Element borderDashed(Element child) {
   return std::make_shared<Border>(unpack(std::move(child)), DASHED);
 }
 
-/// @brief Draw a dashed border around the element.
+/// @brief Draw a light border around the element.
 /// @ingroup dom
 /// @see border
 /// @see borderLight

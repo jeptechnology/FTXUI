@@ -98,7 +98,7 @@ class VerticalContainer : public ContainerBase {
  public:
   using ContainerBase::ContainerBase;
 
-  Element Render() override {
+  Element OnRender() override {
     Elements elements;
     elements.reserve(children_.size());
     for (auto& it : children_) {
@@ -163,6 +163,7 @@ class VerticalContainer : public ContainerBase {
       return false;
     }
 
+    const int old_selected = *selector_;
     if (event.mouse().button == Mouse::WheelUp) {
       MoveSelector(-1);
     }
@@ -171,7 +172,7 @@ class VerticalContainer : public ContainerBase {
     }
     *selector_ = std::max(0, std::min(int(children_.size()) - 1, *selector_));
 
-    return true;
+    return old_selected != *selector_;
   }
 
   Box box_;
@@ -181,7 +182,7 @@ class HorizontalContainer : public ContainerBase {
  public:
   using ContainerBase::ContainerBase;
 
-  Element Render() override {
+  Element OnRender() override {
     Elements elements;
     elements.reserve(children_.size());
     for (auto& it : children_) {
@@ -217,7 +218,7 @@ class TabContainer : public ContainerBase {
  public:
   using ContainerBase::ContainerBase;
 
-  Element Render() override {
+  Element OnRender() override {
     const Component active_child = ActiveChild();
     if (active_child) {
       return active_child->Render();
@@ -243,7 +244,7 @@ class StackedContainer : public ContainerBase {
       : ContainerBase(std::move(children), nullptr) {}
 
  private:
-  Element Render() final {
+  Element OnRender() final {
     Elements elements;
     for (auto& child : children_) {
       elements.push_back(child->Render());
@@ -333,7 +334,7 @@ Component Vertical(Components children) {
 ///   children_2,
 ///   children_3,
 ///   children_4,
-/// });
+/// }, &selected_children);
 /// ```
 Component Vertical(Components children, int* selector) {
   return std::make_shared<VerticalContainer>(std::move(children), selector);
@@ -354,7 +355,7 @@ Component Vertical(Components children, int* selector) {
 ///   children_2,
 ///   children_3,
 ///   children_4,
-/// }, &selected_children);
+/// });
 /// ```
 Component Horizontal(Components children) {
   return Horizontal(std::move(children), nullptr);

@@ -4,6 +4,9 @@ Changelog
 current (development) 
 ---------------------
 
+6.0.0 (2025-03-23)
+-----
+
 ### Component
 - Feature: Add support for raw input. Allowing more keys to be detected.
 - Feature: Add `ScreenInteractive::ForceHandleCtrlC(false)` to allow component
@@ -16,6 +19,9 @@ current (development)
 - Feature: Add support for `Input`'s insert mode. Add `InputOption::insert`
   option. Added by @mingsheng13.
 - Feature: Add `DropdownOption` to configure the dropdown. See #826.
+- Feature: Add support for Selection. Thanks @clement-roblot. See #926.
+  - See `ScreenInteractive::GetSelection()`.
+  - See `ScreenInteractive::SelectionChange(...)` listener.
 - Bugfix/Breaking change: `Mouse transition`:
   - Detect when the mouse move, as opposed to being pressed.
     The Mouse::Moved motion was added.
@@ -35,11 +41,39 @@ current (development)
 - Bugfix: Fix cursor position in when in the last column. See #831.
 - Bugfix: Fix `ResizeableSplit` keyboard navigation. Fixed by #842.
 - Bugfix: Fix `Menu` focus. See #841
+- Feature: Add `ComponentBase::Index()`. This allows to get the index of a
+  component in its parent. See #932
+- Feature: Add `EntryState::index`. This allows to get the index of a menu entry.
+  See #932
+- Feature: Add `SliderOption::on_change`. This allows to set a callback when the
+  slider value changes. See #938.
+- Bugfix: Handle `Dropdown` with no entries.
+- Bugfix: Fix crash in `LinearGradient` due to float precision and an off-by-one
+          mistake. See #998.
 
 ### Dom
+- Feature: Add `italic` decorator. For instance:
+  ```cpp
+  auto italic_text = text("Italic text") | italic;
+  ```
+  ```cpp
+  auto italic_text = italic(text("Italic text"));
+  ```
+  Proposed by @kenReneris in #1009.
 - Feature: Add `hscroll_indicator`. It display an horizontal indicator
   reflecting the current scroll position. Proposed by @ibrahimnasson in
   [issue 752](https://github.com/ArthurSonzogni/FTXUI/issues/752)
+- Feature: Add `extend_beyond_screen` option to `Dimension::Fit(..)`, allowing
+  the element to be larger than the screen. Proposed by @LordWhiro. See #572 and
+  #949.
+- Feature: Add support for Selection. Thanks @clement-roblot. See #926.
+  - See `selectionColor` decorator.
+  - See `selectionBackgroundColor` decorator.
+  - See `selectionForegroundColor` decorator.
+  - See `selectionStyle(style)` decorator.
+  - See `selectionStyleReset` decorator.
+- Breaking change: Change how "focus"/"select" are handled. This fixes the
+  behavior.
 
 ### Screen
 - Feature: Add `Box::IsEmpty()`.

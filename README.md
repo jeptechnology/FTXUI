@@ -109,6 +109,7 @@ Element can become flexible using the the `flex` decorator.
 
 An element can be decorated using the functions:
   - `bold`
+  - `italic`
   - `dim`
   - `inverted`
   - `underlined`
@@ -310,7 +311,6 @@ Feel free to add your projects here:
 - [x86-64 CPU Architecture Simulation](https://github.com/AnisBdz/CPU)
 - [ltuiny](https://github.com/adrianoviana87/ltuiny)
 - [i3-termdialogs](https://github.com/mibli/i3-termdialogs)
-- [Just-Fast](https://github.com/GiuseppeCesarano/just-fast)
 - [simpPRU](https://github.com/VedantParanjape/simpPRU)
 - [Pigeon ROS TUI](https://github.com/PigeonSensei/Pigeon_ros_tui)
 - [hastur](https://github.com/robinlinden/hastur)
@@ -336,6 +336,18 @@ Feel free to add your projects here:
 - [Step-Writer](https://github.com/BrianAnakPintar/step-writer)
 - [XJ music](https://github.com/xjmusic/xjmusic)
 - [UDP chat](https://github.com/Sergeydigl3/udp-chat-tui)
+- [2048-cpp](https://github.com/Chessom/2048-cpp)
+- [Memory game](https://github.com/mikolajlubiak/memory)
+- [Terminal Animation](https://github.com/mikolajlubiak/terminal_animation)
+- [pciex](https://github.com/s0nx/pciex)
+- [Fallout terminal hacking](https://github.com/gshigin/yet-another-fallout-terminal-hacking-game)
+- [Lazylist](https://github.com/zhuyongqi9/lazylist)
+- [TUISIC](https://github.com/Dark-Kernel/tuisic)
+- [inLimbo](https://github.com/nots1dd/inLimbo)
+- [BestEdrOfTheMarket](https://github.com/Xacone/BestEdrOfTheMarket)
+- [terminal-rain](https://github.com/Oakamoore/terminal-rain)
+- [keywords](https://github.com/Oakamoore/keywords) ([Play web version :heart:](https://oakamoore.itch.io/keywords))
+- [FTB - tertminal file browser](https://github.com/Cyxuan0311/FTB)
 
 ### [cpp-best-practices/game_jam](https://github.com/cpp-best-practices/game_jam)
 
@@ -360,7 +372,7 @@ include(FetchContent)
 
 FetchContent_Declare(ftxui
   GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
-  GIT_TAG v5.0.0
+  GIT_TAG v6.0.0
 )
 
 FetchContent_GetProperties(ftxui)

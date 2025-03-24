@@ -95,6 +95,7 @@ Element canvas(std::function<void(Canvas&)>);
 // -- Decorator ---
 Element bold(Element);
 Element dim(Element);
+Element italic(Element);
 Element inverted(Element);
 Element underlined(Element);
 Element underlinedDouble(Element);
@@ -113,6 +114,11 @@ Decorator focusPositionRelative(float x, float y);
 Element automerge(Element child);
 Decorator hyperlink(std::string link);
 Element hyperlink(std::string link, Element child);
+Element selectionStyleReset(Element);
+Decorator selectionColor(Color foreground);
+Decorator selectionBackgroundColor(Color foreground);
+Decorator selectionForegroundColor(Color foreground);
+Decorator selectionStyle(std::function<void(Pixel&)> style);
 
 // --- Layout is
 // Horizontal, Vertical or stacked set of elements.
@@ -156,7 +162,7 @@ Element frame(Element);
 Element xframe(Element);
 Element yframe(Element);
 Element focus(Element);
-Element select(Element);
+Element select(Element e);  // Deprecated - Alias for focus.
 
 // --- Cursor ---
 // Those are similar to `focus`, but also change the shape of the cursor.
@@ -183,7 +189,7 @@ Element align_right(Element);
 Element nothing(Element element);
 
 namespace Dimension {
-Dimensions Fit(Element&);
+Dimensions Fit(Element&, bool extend_beyond_screen = false);
 }  // namespace Dimension
 
 }  // namespace ftxui

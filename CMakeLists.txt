@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ftxui
   LANGUAGES CXX
-  VERSION 5.0.0
+  VERSION 6.0.0
   DESCRIPTION "C++ Functional Terminal User Interface."
 )
 
@@ -56,11 +56,12 @@ add_library(dom
   include/ftxui/dom/flexbox_config.hpp
   include/ftxui/dom/node.hpp
   include/ftxui/dom/requirement.hpp
+  include/ftxui/dom/selection.hpp
   include/ftxui/dom/take_any_args.hpp
   src/ftxui/dom/automerge.cpp
+  src/ftxui/dom/selection_style.cpp
   src/ftxui/dom/blink.cpp
   src/ftxui/dom/bold.cpp
-  src/ftxui/dom/hyperlink.cpp
   src/ftxui/dom/border.cpp
   src/ftxui/dom/box_helper.cpp
   src/ftxui/dom/box_helper.hpp
@@ -81,13 +82,16 @@ add_library(dom
   src/ftxui/dom/graph.cpp
   src/ftxui/dom/gridbox.cpp
   src/ftxui/dom/hbox.cpp
+  src/ftxui/dom/hyperlink.cpp
   src/ftxui/dom/inverted.cpp
+  src/ftxui/dom/italic.cpp
   src/ftxui/dom/linear_gradient.cpp
   src/ftxui/dom/node.cpp
   src/ftxui/dom/node_decorator.cpp
   src/ftxui/dom/paragraph.cpp
   src/ftxui/dom/reflect.cpp
   src/ftxui/dom/scroll_indicator.cpp
+  src/ftxui/dom/selection.cpp
   src/ftxui/dom/separator.cpp
   src/ftxui/dom/size.cpp
   src/ftxui/dom/spinner.cpp

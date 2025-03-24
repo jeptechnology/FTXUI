@@ -8,6 +8,7 @@
 #include <vector>  // for vector
 
 #include "ftxui/dom/requirement.hpp"  // for Requirement
+#include "ftxui/dom/selection.hpp"    // for Selection
 #include "ftxui/screen/box.hpp"       // for Box
 #include "ftxui/screen/screen.hpp"
 
@@ -40,8 +41,14 @@ class Node {
   //         Propagated from Parents to Children.
   virtual void SetBox(Box box);
 
-  // Step 3: Draw this element.
+  // Step 3: (optional) Selection
+  //         Propagated from Parents to Children.
+  virtual void Select(Selection& selection);
+
+  // Step 4: Draw this element.
   virtual void Render(Screen& screen);
+
+  virtual std::string GetSelectedContent(Selection& selection);
 
   // Layout may not resolve within a single iteration for some elements. This
   // allows them to request additionnal iterations. This signal must be
@@ -52,6 +59,8 @@ class Node {
   };
   virtual void Check(Status* status);
 
+  friend void Render(Screen& screen, Node* node, Selection& selection);
+
  protected:
   Elements children_;
   Requirement requirement_;
@@ -60,6 +69,10 @@ class Node {
 
 void Render(Screen& screen, const Element& element);
 void Render(Screen& screen, Node* node);
+void Render(Screen& screen, Node* node, Selection& selection);
+std::string GetNodeSelectedContent(Screen& screen,
+                                   Node* node,
+                                   Selection& selection);
 
 }  // namespace ftxui
 

@@ -44,12 +44,16 @@ class ComponentBase {
   ComponentBase* Parent() const;
   Component& ChildAt(size_t i);
   size_t ChildCount() const;
+  int Index() const;
   void Add(Component children);
   void Detach();
   void DetachAllChildren();
 
   // Renders the component.
-  virtual Element Render();
+  Element Render();
+
+  // Override this function modify how `Render` works.
+  virtual Element OnRender();
 
   // Handles an event.
   // By default, reduce on children with a lazy OR.
@@ -93,6 +97,7 @@ class ComponentBase {
 
  private:
   ComponentBase* parent_ = nullptr;
+  bool in_render = false;
 };
 
 }  // namespace ftxui

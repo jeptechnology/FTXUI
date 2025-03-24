@@ -106,6 +106,12 @@ void UpdatePixelStyle(const Screen* screen,
                          : "\x1B[27m");  // INVERTED_RESET
   }
 
+  // Italics
+  if (FTXUI_UNLIKELY(next.italic != prev.italic)) {
+    ss << (next.italic ? "\x1B[3m"     // ITALIC_SET
+                       : "\x1B[23m");  // ITALIC_RESET
+  }
+
   // StrikeThrough
   if (FTXUI_UNLIKELY(next.strikethrough != prev.strikethrough)) {
     ss << (next.strikethrough ? "\x1B[9m"     // CROSSED_OUT
@@ -542,6 +548,18 @@ const std::string& Screen::Hyperlink(std::uint8_t id) const {
     return hyperlinks_[0];
   }
   return hyperlinks_[id];
+}
+
+/// @brief Return the current selection style.
+/// @see SetSelectionStyle
+const Screen::SelectionStyle& Screen::GetSelectionStyle() const {
+  return selection_style_;
+}
+
+/// @brief Set the current selection style.
+/// @see GetSelectionStyle
+void Screen::SetSelectionStyle(SelectionStyle decorator) {
+  selection_style_ = std::move(decorator);
 }
 
 }  // namespace ftxui
