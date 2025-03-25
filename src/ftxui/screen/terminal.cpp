@@ -7,7 +7,9 @@
 #include "ftxui/screen/terminal.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include <sys/select.h>  // for select, FD_ISSET, FD_SET, FD_ZERO, fd_set, timeval
-#include <termios.h>  // for tcsetattr, termios, tcgetattr, TCSANOW, cc_t, ECHO, ICANON, VMIN, VTIME
+#if !defined(ESP32)
+#  include <termios.h>  // for tcsetattr, termios, tcgetattr, TCSANOW, cc_t, ECHO, ICANON, VMIN, VTIME
+#endif
 #include <unistd.h>  // for STDIN_FILENO, read
 
 #if defined(_WIN32)
@@ -22,9 +24,11 @@
 #include <string.h>
 #include <errno.h>
 #include <cstdio>
-#include <pty.h>
-#include <termios.h>
-#include <sys/ioctl.h>  // for winsize, ioctl, TIOCGWINSZ
+#if !defined(ESP32)
+#  include <pty.h>
+#  include <termios.h>
+#  include <sys/ioctl.h>  // for winsize, ioctl, TIOCGWINSZ
+#endif
 #include <unistd.h>     // for STDOUT_FILENO
 #endif
 
@@ -182,6 +186,7 @@ Terminal::Color ComputeColorSupport() {
   return Terminal::Color::Palette16;
 }
 
+#if !defined(ESP32)
 void Terminal::Uninstall()
 {
   if (m_oldTerminalState == nullptr)
@@ -214,6 +219,7 @@ void Terminal::Install()
 
   tcsetattr(m_input_fd, TCSANOW, &terminal);
 }
+#endif // !defined(ESP32)
 
 Dimensions Terminal::GetPsuedoTerminalSize() {
   if (g_cached_dimensions.dimx != 0 && g_cached_dimensions.dimy != 0) 
@@ -284,7 +290,14 @@ Dimensions Terminal::Size() {
 
   return FallbackSize();
 #else
-  if (m_output_fd != STDOUT_FILENO) {
+  #if defined(ESP32)
+  constexpr bool IsPsuedoTerminal = true;
+  #else 
+  constexpr bool IsPsuedoTerminal = (m_output_fd != STDOUT_FILENO);
+  #endif
+  
+  if (IsPsuedoTerminal) 
+  {
 
     if (g_cached_dimensions.dimx != 0 && g_cached_dimensions.dimy != 0) 
     {
@@ -309,14 +322,19 @@ Dimensions Terminal::Size() {
     return FallbackSize();
   }
 
-  winsize w{};
-  const int status = ioctl(m_output_fd, TIOCGWINSZ, &w);  // NOLINT
-  // The ioctl return value result should be checked. Some operating systems
-  // don't support TIOCGWINSZ.
-  if (w.ws_col == 0 || w.ws_row == 0 || status < 0) {
+  #if defined(ESP32)
+    // Always the fallback size if we get here on ESP32
     return FallbackSize();
-  }
-  return Dimensions{w.ws_col, w.ws_row};
+  #else
+    winsize w{};
+    const int status = ioctl(m_output_fd, TIOCGWINSZ, &w);  // NOLINT
+    // The ioctl return value result should be checked. Some operating systems
+    // don't support TIOCGWINSZ.
+    if (w.ws_col == 0 || w.ws_row == 0 || status < 0) {
+      return FallbackSize();
+    }
+    return Dimensions{w.ws_col, w.ws_row};
+  #endif
 #endif
 }
 

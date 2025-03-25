@@ -63,7 +63,9 @@ private:
   Dimensions g_cached_dimensions{0,0};            // NOLINT
   std::chrono::steady_clock::time_point g_cached_dimensions_time;  // NOLINT
   Color g_cached_supported_color;  // NOLINT
+  #if !defined(ESP32)
   std::unique_ptr<struct termios> m_oldTerminalState;  // NOLINT
+  #endif
 
 public:
   std::ostream& output;
