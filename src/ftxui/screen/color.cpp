@@ -90,7 +90,7 @@ Color::Color(Palette16 index)
 /// @ingroup screen
 Color::Color(Palette256 index)
     : type_(ColorType::Palette256), red_(index), alpha_(255) {
-  if (Terminal::ColorSupport() >= Terminal::Color::Palette256) {
+  if (Terminal::Current().ColorSupport() >= Terminal::Color::Palette256) {
     return;
   }
   type_ = ColorType::Palette16;
@@ -111,7 +111,7 @@ Color::Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
       green_(green),
       blue_(blue),
       alpha_(alpha) {
-  if (Terminal::ColorSupport() == Terminal::Color::TrueColor) {
+  if (Terminal::Current().ColorSupport() == Terminal::Color::TrueColor) {
     return;
   }
 
@@ -133,7 +133,7 @@ Color::Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha)
     }
   }
 
-  if (Terminal::ColorSupport() == Terminal::Color::Palette256) {
+  if (Terminal::Current().ColorSupport() == Terminal::Color::Palette256) {
     type_ = ColorType::Palette256;
     red_ = best;
   } else {

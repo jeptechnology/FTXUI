@@ -380,7 +380,7 @@ Dimensions Dimension::Fixed(int v) {
 /// @see Fixed
 /// @see Fit
 Dimensions Dimension::Full() {
-  return Terminal::Size();
+  return Terminal::Current().Size();
 }
 
 // static
@@ -450,7 +450,7 @@ std::string Screen::ToString() const {
 
 // Print the Screen to the terminal.
 void Screen::Print() const {
-  std::cout << ToString() << '\0' << std::flush;
+  Terminal::Current().output << ToString() << '\0' << std::flush;
 }
 
 /// @brief Return a string to be printed in order to reset the cursor position
@@ -462,7 +462,7 @@ void Screen::Print() const {
 ///   auto document = render();
 ///   auto screen = Screen::Create(Dimension::Full(), Dimension::Fit(document));
 ///   Render(screen, document);
-///   std::cout << reset_position << screen.ToString() << std::flush;
+///   (*pcout) << reset_position << screen.ToString() << std::flush;
 ///   reset_position = screen.ResetPosition();
 ///
 ///   using namespace std::chrono_literals;

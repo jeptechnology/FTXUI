@@ -36,6 +36,7 @@ class ScreenInteractive : public Screen {
   static ScreenInteractive FullscreenAlternateScreen();
   static ScreenInteractive FitComponent();
   static ScreenInteractive TerminalOutput();
+  static ScreenInteractive Custom(int intput_fd, int output_fd);
 
   // Options. Must be called before Loop().
   void TrackMouse(bool enable = true);
@@ -44,6 +45,7 @@ class ScreenInteractive : public Screen {
   static ScreenInteractive* Active();
 
   // Start/Stop the main loop.
+  void PreventAnimation();
   void Loop(Component);
   void Exit();
   Closure ExitLoopClosure();
@@ -94,19 +96,22 @@ class ScreenInteractive : public Screen {
 
   void Signal(int signal);
 
+  Terminal terminal_;
   ScreenInteractive* suspended_screen_ = nullptr;
   enum class Dimension {
     FitComponent,
     Fixed,
     Fullscreen,
-    TerminalOutput,
+    TerminalOutput
   };
   Dimension dimension_ = Dimension::Fixed;
   bool use_alternative_screen_ = false;
   ScreenInteractive(int dimx,
                     int dimy,
                     Dimension dimension,
-                    bool use_alternative_screen);
+                    bool use_alternative_screen,
+                    int input_fd = STDIN_FILENO,
+                    int output_fd = STDOUT_FILENO);
 
   bool track_mouse_ = true;
 
@@ -117,6 +122,7 @@ class ScreenInteractive : public Screen {
   std::string reset_cursor_position;
 
   std::atomic<bool> quit_{false};
+  std::atomic<bool> stop_animations_{false};
   std::thread event_listener_;
   std::thread animation_listener_;
   bool animation_requested_ = false;

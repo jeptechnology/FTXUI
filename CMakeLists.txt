@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ftxui
   LANGUAGES CXX
-  VERSION 5.0.0
+  VERSION 6.0.0
   DESCRIPTION "C++ Functional Terminal User Interface."
 )
 
@@ -15,6 +15,7 @@ option(FTXUI_ENABLE_INSTALL "Generate the install target" ON)
 option(FTXUI_CLANG_TIDY "Execute clang-tidy" OFF)
 option(FTXUI_ENABLE_COVERAGE "Execute code coverage" OFF)
 option(FTXUI_DEV_WARNINGS "Enable more compiler warnings and warnings as errors" OFF)
+option(FTXUI_ESP32 "Build for ESP32" OFF)
 
 set(FTXUI_MICROSOFT_TERMINAL_FALLBACK_HELP_TEXT "On windows, assume the \
 terminal used will be one of Microsoft and use a set of reasonnable fallback \
@@ -144,6 +145,10 @@ add_library(component
   src/ftxui/component/window.cpp
 )
 
+target_link_libraries(screen
+  PUBLIC util
+)
+
 target_link_libraries(dom
   PUBLIC screen
 )
@@ -151,6 +156,10 @@ target_link_libraries(dom
 target_link_libraries(component
   PUBLIC dom
 )
+
+if (FTXUI_ESP32)
+   target_compile_definitions(screen PUBLIC ESP32)
+endif()
 
 if (NOT EMSCRIPTEN)
   find_package(Threads)

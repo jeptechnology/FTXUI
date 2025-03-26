@@ -110,13 +110,13 @@ int main() {
 
   auto terminal_info =
       vbox({
-          Terminal::ColorSupport() >= Terminal::Color::Palette16
+          Terminal::Current().ColorSupport() >= Terminal::Color::Palette16
               ? text(" 16 color palette support : Yes")
               : text(" 16 color palette support : No"),
-          Terminal::ColorSupport() >= Terminal::Color::Palette256
+          Terminal::Current().ColorSupport() >= Terminal::Color::Palette256
               ? text("256 color palette support : Yes")
               : text("256 color palette support : No"),
-          Terminal::ColorSupport() >= Terminal::Color::TrueColor
+          Terminal::Current().ColorSupport() >= Terminal::Color::TrueColor
               ? text("       True color support : Yes")
               : text("       True color support : No"),
       }) |
