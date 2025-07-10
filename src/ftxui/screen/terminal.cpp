@@ -293,7 +293,7 @@ Dimensions Terminal::Size() {
   #if defined(ESP32)
   constexpr bool IsPsuedoTerminal = true;
   #else 
-  constexpr bool IsPsuedoTerminal = (m_output_fd != STDOUT_FILENO);
+  const bool IsPsuedoTerminal = (m_output_fd != STDOUT_FILENO);
   #endif
   
   if (IsPsuedoTerminal) 

@@ -61,15 +61,15 @@ struct AnimatedColorOption {
       animation::easing::Function function = animation::easing::QuadraticInOut);
 
   bool enabled = false;
-  Color inactive;
-  Color active;
+  Color inactive = {};
+  Color active = {};
   animation::Duration duration = std::chrono::milliseconds(250);
   animation::easing::Function function = animation::easing::QuadraticInOut;
 };
 
 struct AnimatedColorsOption {
-  AnimatedColorOption background;
-  AnimatedColorOption foreground;
+  AnimatedColorOption background = {};
+  AnimatedColorOption foreground = {};
 };
 
 /// @brief Option for the MenuEntry component.
@@ -127,7 +127,7 @@ struct ButtonOption {
 
   // Style:
   std::function<Element(const EntryState&)> transform;
-  AnimatedColorsOption animated_colors;
+  AnimatedColorsOption animated_colors = {};
 };
 
 /// @brief Option for the Checkbox component.
@@ -141,7 +141,7 @@ struct CheckboxOption {
   Ref<bool> checked = false;
 
   // Style:
-  std::function<Element(const EntryState&)> transform;
+  std::function<Element(const EntryState&)> transform = nullptr;
 
   // Observer:
   /// Called when the user change the state.
